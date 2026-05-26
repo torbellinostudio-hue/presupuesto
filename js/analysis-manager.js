@@ -22,6 +22,7 @@ class AnalysisManager {
     // Referencias DOM
     this._mesSelect = document.getElementById('analysis-mes-select');
     this._epSelect = document.getElementById('analysis-ep-select');
+    this._accionSelect = document.getElementById('analysis-accion-select');
     this._unidadSelect = document.getElementById('analysis-unidad-select');
     this._partidaMayorSelect = document.getElementById('analysis-partida-mayor-select');
     this._gridContainer = document.getElementById('analysis-grid-container');
@@ -32,6 +33,7 @@ class AnalysisManager {
   _bindEvents() {
     if (this._mesSelect) this._mesSelect.addEventListener('change', () => this.refreshPanels());
     if (this._epSelect) this._epSelect.addEventListener('change', () => this._onEPChange());
+    if (this._accionSelect) this._accionSelect.addEventListener('change', () => this._onAccionChange());
     if (this._unidadSelect) this._unidadSelect.addEventListener('change', () => this._onUnidadChange());
     if (this._partidaMayorSelect) this._partidaMayorSelect.addEventListener('change', () => this._updatePanelDispo());
 
@@ -139,61 +141,119 @@ class AnalysisManager {
 
   _onEPChange() {
     const ep = this._epSelect.value;
-    if (!ep) {
-      this._unidadSelect.innerHTML = '<option value="">Seleccione Unidad...</option>';
-      this._unidadSelect.disabled = true;
-      this._partidaMayorSelect.innerHTML = '<option value="">Seleccione Partida Mayor...</option>';
-      this._partidaMayorSelect.disabled = true;
-      this._updatePanelDispo();
-      return;
-    }
+    this._accionSelect.value = '';
+    this._unidadSelect.value = '';
 
     const h = this._headers;
     const epIdx = h.indexOf('Estructura Programatica');
+    const aIdx = h.indexOf('Accion Especifica');
     const uIdx = h.indexOf('Unidad Ejecutora');
-    const uniSet = new Set();
 
-    this._rawRows.forEach(r => {
-      if (String(r[epIdx] || '').trim() === ep) {
-        const u = String(r[uIdx] || '').trim();
-        if (u) uniSet.add(u);
-      }
-    });
+    this._accionSelect.innerHTML = '<option value="">Todas las Acciones (Consolidado)</option>';
+    this._unidadSelect.innerHTML = '<option value="">Todas las Unidades (Consolidado)</option>';
 
-    const sortedUni = [...uniSet].sort();
-    this._unidadSelect.innerHTML = '<option value="">Seleccione Unidad...</option>';
-    sortedUni.forEach(u => {
-      this._unidadSelect.innerHTML += `<option value="${u}">${u.length > 50 ? u.slice(0, 48)+'...' : u}</option>`;
-    });
-    this._unidadSelect.disabled = false;
-    
-    // Auto-seleccionar la primera Unidad si hay alguna
-    if (this._unidadSelect.options.length > 1) {
-      this._unidadSelect.selectedIndex = 1;
-      this._onUnidadChange();
+    if (ep) {
+      this._accionSelect.disabled = false;
+      this._unidadSelect.disabled = false;
+      
+      const accSet = new Set();
+      const uniSet = new Set();
+      this._rawRows.forEach(r => {
+        if (String(r[epIdx] || '').trim() === ep) {
+          const a = String(r[aIdx] || '').trim();
+          if (a) accSet.add(a);
+          const u = String(r[uIdx] || '').trim();
+          if (u) uniSet.add(u);
+        }
+      });
+
+      [...accSet].sort().forEach(a => {
+        this._accionSelect.innerHTML += `<option value="${a}">${a.length > 50 ? a.slice(0, 48)+'...' : a}</option>`;
+      });
+
+      [...uniSet].sort().forEach(u => {
+        this._unidadSelect.innerHTML += `<option value="${u}">${u.length > 50 ? u.slice(0, 48)+'...' : u}</option>`;
+      });
     } else {
-      this._onUnidadChange(); // trigger to clear children
+      this._accionSelect.disabled = true;
+      this._unidadSelect.disabled = true;
     }
+
+    this._refreshPartidaMayor();
+  }
+
+  _onAccionChange() {
+    this._unidadSelect.value = '';
+    const ep = this._epSelect.value;
+    const acc = this._accionSelect.value;
+
+    this._unidadSelect.innerHTML = '<option value="">Todas las Unidades (Consolidado)</option>';
+    
+    if (ep && acc) {
+      const h = this._headers;
+      const epIdx = h.indexOf('Estructura Programatica');
+      const aIdx = h.indexOf('Accion Especifica');
+      const uIdx = h.indexOf('Unidad Ejecutora');
+      const uniSet = new Set();
+      
+      this._rawRows.forEach(r => {
+        if (String(r[epIdx] || '').trim() === ep && String(r[aIdx] || '').trim() === acc) {
+          const u = String(r[uIdx] || '').trim();
+          if (u) uniSet.add(u);
+        }
+      });
+      [...uniSet].sort().forEach(u => {
+        this._unidadSelect.innerHTML += `<option value="${u}">${u.length > 50 ? u.slice(0, 48)+'...' : u}</option>`;
+      });
+    } else if (ep) {
+       // if they clear Accion, we should restore all Unidades for that EP
+       const h = this._headers;
+       const epIdx = h.indexOf('Estructura Programatica');
+       const uIdx = h.indexOf('Unidad Ejecutora');
+       const uniSet = new Set();
+       this._rawRows.forEach(r => {
+         if (String(r[epIdx] || '').trim() === ep) {
+           const u = String(r[uIdx] || '').trim();
+           if (u) uniSet.add(u);
+         }
+       });
+       [...uniSet].sort().forEach(u => {
+         this._unidadSelect.innerHTML += `<option value="${u}">${u.length > 50 ? u.slice(0, 48)+'...' : u}</option>`;
+       });
+    }
+    
+    this._refreshPartidaMayor();
   }
 
   _onUnidadChange() {
+    this._refreshPartidaMayor();
+  }
+
+  _refreshPartidaMayor() {
     const ep = this._epSelect.value;
+    const acc = this._accionSelect.value;
     const uni = this._unidadSelect.value;
-    if (!ep || !uni) {
-      this._partidaMayorSelect.innerHTML = '<option value="">Seleccione Partida Mayor...</option>';
-      this._partidaMayorSelect.disabled = true;
-      this._updatePanelDispo();
-      return;
+    
+    if (!ep) {
+       this._partidaMayorSelect.innerHTML = '<option value="">Seleccione Partida Mayor...</option>';
+       this._partidaMayorSelect.disabled = true;
+       this._updatePanelDispo();
+       return;
     }
 
     const h = this._headers;
     const epIdx = h.indexOf('Estructura Programatica');
+    const aIdx = h.indexOf('Accion Especifica');
     const uIdx = h.indexOf('Unidad Ejecutora');
     const cuentaIdx = h.indexOf('Cuenta'); 
     const genSet = new Set();
 
     this._rawRows.forEach(r => {
-      if (String(r[epIdx] || '').trim() === ep && String(r[uIdx] || '').trim() === uni) {
+      const matchEp = !ep || String(r[epIdx] || '').trim() === ep;
+      const matchAcc = !acc || String(r[aIdx] || '').trim() === acc;
+      const matchUni = !uni || String(r[uIdx] || '').trim() === uni;
+      
+      if (matchEp && matchAcc && matchUni) {
         const p = String(r[cuentaIdx] || '').trim();
         if (p) {
           const mayor = p.replace(/[^0-9]/g, '').substring(0, 3);
@@ -203,6 +263,8 @@ class AnalysisManager {
     });
 
     const sortedGen = [...genSet].sort();
+    const prevVal = this._partidaMayorSelect.value;
+    
     this._partidaMayorSelect.innerHTML = '<option value="">Seleccione Partida Mayor...</option>';
     sortedGen.forEach(g => {
       let d = this._getDenom(g);
@@ -211,12 +273,13 @@ class AnalysisManager {
       this._partidaMayorSelect.innerHTML += `<option value="${g}">${label}</option>`;
     });
     this._partidaMayorSelect.disabled = false;
-    
-    // Auto-seleccionar la primera Partida Mayor si hay alguna
-    if (this._partidaMayorSelect.options.length > 1) {
+
+    if (prevVal && sortedGen.includes(prevVal)) {
+      this._partidaMayorSelect.value = prevVal;
+    } else if (this._partidaMayorSelect.options.length > 1) {
       this._partidaMayorSelect.selectedIndex = 1;
     }
-    
+
     this._updatePanelDispo();
   }
 
@@ -239,16 +302,19 @@ class AnalysisManager {
      ================================================================ */
   _updatePanelDispo() {
     const ep = this._epSelect.value;
+    const acc = this._accionSelect.value;
     const uni = this._unidadSelect.value;
     const partMayor = this._partidaMayorSelect.value;
 
-    if (!ep || !uni || !partMayor) {
-      this._gridContainer.innerHTML = '<div class="dispo-empty-state" style="grid-column: 1/-1;">Seleccione una estructura, unidad y partida para ver su disponibilidad en cuadrícula.</div>';
+    if (!ep || !partMayor) {
+      this._gridContainer.innerHTML = '<div class="dispo-empty-state" style="grid-column: 1/-1;">Seleccione una estructura (y opcionalmente acción o unidad) y una partida para ver su disponibilidad en cuadrícula.</div>';
       return;
     }
 
     const h = this._headers;
     const epIdx = h.indexOf('Estructura Programatica');
+    const aIdx = h.indexOf('Accion Especifica');
+    const uIdx = h.indexOf('Unidad Ejecutora');
     const cuentaIdx = h.indexOf('Cuenta'); 
     const denomIdx = h.indexOf('Denominacion');
     const actIdx = h.indexOf('Monto Actualizado');
@@ -268,9 +334,13 @@ class AnalysisManager {
       return { mayor, generica, especifica: c }; // la cuenta completa será la específica
     };
 
-    // 1. Asignado global (por bloque)
+    // 1. Asignado global (por bloque) -> Usamos Monto Actualizado
     this._rawRows.forEach(r => {
-      if (String(r[epIdx] || '').trim() === ep && String(r[h.indexOf('Unidad Ejecutora')] || '').trim() === uni) {
+      const matchEp = !ep || String(r[epIdx] || '').trim() === ep;
+      const matchAcc = !acc || String(r[aIdx] || '').trim() === acc;
+      const matchUni = !uni || String(r[uIdx] || '').trim() === uni;
+
+      if (matchEp && matchAcc && matchUni) {
         const pRaw = r[cuentaIdx];
         if (!pRaw) return;
         const keys = getClaves(pRaw);
@@ -297,7 +367,7 @@ class AnalysisManager {
           const bId = String(r[blockIdx] || '');
           if (bId && !processedBlocks.has(bId)) {
             processedBlocks.add(bId);
-            const amt = parseFloat(r[actIdx]) || 0;
+            const amt = parseFloat(r[actIdx]) || 0; // Se usa Monto Actualizado
             genNode.asignado += amt;
             genNode.hijas.get(keys.especifica).asignado += amt;
           }
@@ -308,7 +378,11 @@ class AnalysisManager {
     // 2. Ejecución (filtrado por mes local)
     const localRows = this._getLocalFilteredRows();
     localRows.forEach(r => {
-      if (String(r[epIdx] || '').trim() === ep && String(r[h.indexOf('Unidad Ejecutora')] || '').trim() === uni) {
+      const matchEp = !ep || String(r[epIdx] || '').trim() === ep;
+      const matchAcc = !acc || String(r[aIdx] || '').trim() === acc;
+      const matchUni = !uni || String(r[uIdx] || '').trim() === uni;
+
+      if (matchEp && matchAcc && matchUni) {
         const pRaw = r[cuentaIdx];
         if (!pRaw) return;
         const keys = getClaves(pRaw);
@@ -356,13 +430,13 @@ class AnalysisManager {
           <div class="analysis-col-header">
             <div class="analysis-col-title">${genKey} - ${denomGen}</div>
             <div class="dispo-labels" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
-              <span>Asignado: <strong>${this._fmtMoney(genData.asignado)}</strong></span>
-              <span>Comp: <strong style="color:#F6BD16">${this._fmtMoney(genData.comp)}</strong></span>
-              <span>Disp: <strong style="color:${gColorDisp}">${this._fmtMoney(gSaldo)}</strong></span>
+              <span>Actualizado: <strong>${fmt(genData.asignado)}</strong></span>
+              <span>Comp: <strong style="color:#F6BD16">${fmt(genData.comp)}</strong></span>
+              <span>Disp: <strong style="color:${gColorDisp}">${fmt(gSaldo)}</strong></span>
             </div>
             <div class="dispo-bar-wrapper" style="margin-top: 6px;">
               <div class="dispo-bar-bg" style="background: rgba(255,255,255,0.1);">
-                <div class="dispo-bar-fill" style="width: ${gPctComp > 100 ? 100 : gPctComp}%; background: ${gBarColor};" title="Comprometido: ${this._fmtMoney(genData.comp)}"></div>
+                <div class="dispo-bar-fill" style="width: ${gPctComp > 100 ? 100 : gPctComp}%; background: ${gBarColor};" title="Comprometido: ${fmt(genData.comp)}"></div>
               </div>
             </div>
             <button class="toggle-records-btn">Ver Específicas ▼</button>
@@ -376,24 +450,20 @@ class AnalysisManager {
         const espData = genData.hijas.get(espKey);
         const eSaldo = espData.asignado - espData.comp;
         const ePctComp = espData.asignado > 0 ? (espData.comp / espData.asignado) * 100 : (espData.comp > 0 ? 100 : 0);
-        const ePctDisp = espData.asignado > 0 ? (eSaldo / espData.asignado) * 100 : 0;
-        const eColorDisp = eSaldo >= 0 && ePctDisp > 50 ? '#5AD8A6' : '#E8684A';
-        const eBarColor = eSaldo < 0 ? '#E8684A' : '#888888';
-        
         let denomEsp = espData.denomRaw || this._getDenom(espKey);
 
         cardHtml += `
             <div class="record-item" style="margin-bottom: 0; padding: 10px;">
               <div style="font-size: 11px; font-weight: bold; color: var(--color-primary-light); margin-bottom: 2px;">${espKey}</div>
               ${denomEsp ? `<div style="font-size: 9px; color: #aaa; margin-bottom: 6px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${denomEsp}</div>` : '<div style="margin-bottom: 4px;"></div>'}
-              <div class="dispo-labels" style="font-size: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
-                <span>Asign: <strong>${this._fmtMoney(espData.asignado)}</strong></span>
-                <span>Comp: <strong style="color:#F6BD16">${this._fmtMoney(espData.comp)}</strong></span>
-                <span>Disp: <strong style="color:${eColorDisp}">${this._fmtMoney(eSaldo)}</strong></span>
+              <div class="analysis-col-stats small">
+                <span title="Monto Actualizado">Actual: ${fmt(espData.asignado)}</span>
+                <span title="Comprometido" style="color:var(--app-warning)">Comp: ${fmt(espData.comp)}</span>
+                <span title="Disponible" style="color:${eSaldo < 0 ? 'var(--app-danger)' : 'var(--app-success)'}">Disp: ${fmt(eSaldo)}</span>
               </div>
               <div class="dispo-bar-wrapper" style="margin-top: 4px;">
                 <div class="dispo-bar-bg" style="height: 4px; background: rgba(255,255,255,0.1);">
-                  <div class="dispo-bar-fill" style="width: ${ePctComp > 100 ? 100 : ePctComp}%; background: ${eBarColor};" title="Comprometido: ${this._fmtMoney(espData.comp)}"></div>
+                  <div class="dispo-bar-fill" style="width: ${ePctComp > 100 ? 100 : ePctComp}%; background: ${eSaldo < 0 ? '#E8684A' : '#888888'};" title="Comprometido: ${fmt(espData.comp)}"></div>
                 </div>
               </div>
             </div>
