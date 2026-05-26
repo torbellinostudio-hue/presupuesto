@@ -316,13 +316,14 @@ class AnalysisManager {
     const aIdx = h.indexOf('Accion Especifica');
     const uIdx = h.indexOf('Unidad Ejecutora');
     const cuentaIdx = h.indexOf('Cuenta'); 
-    const denomIdx = h.indexOf('Denominacion');
-    const actIdx = h.indexOf('Monto Actualizado');
+    const actIdx = h.indexOf('Asignado'); // Cambiado a Asignado
     const compIdx = h.indexOf('Comprometido');
+    const aumIdx = h.indexOf('Aumento');
+    const disIdx = h.indexOf('Disminucion');
     const blockIdx = h.indexOf('ID Bloque');
 
     // Mapear todas las Genéricas -> Específicas
-    // Estructura: map[generica] = { asignado, comp, denomRaw, hijas: map[especifica] -> { asignado, comp, denomRaw } }
+    // Estructura: map[generica] = { asignado, aumento, disminucion, comp, denomRaw, hijas: map[especifica] -> { asignado, aumento, disminucion, comp, denomRaw } }
     const hierarchy = new Map();
 
     // Helper para formato
@@ -333,7 +334,7 @@ class AnalysisManager {
       return { mayor, generica, especifica: c }; // la cuenta completa será la específica
     };
 
-    // 1. Asignado global (por bloque) -> Usamos Monto Actualizado (MÁXIMO por bloque)
+    // 1. Asignado Inicial (por bloque) usando datos RAW completos (MÁXIMO por bloque)
     const maxBudgetByBlock = new Map();
 
     this._rawRows.forEach(r => {
@@ -349,7 +350,7 @@ class AnalysisManager {
         if (keys.mayor === partMayor) {
           const bId = String(r[blockIdx] || '');
           if (bId) {
-            const amt = parseFloat(r[actIdx]) || 0;
+            const amt = parseFloat(r[actIdx]) || 0; // actIdx ahora apunta a Asignado
             if (!maxBudgetByBlock.has(bId)) {
                maxBudgetByBlock.set(bId, { amt: amt, keys: keys, denom: r[denomIdx] });
             } else {
@@ -361,16 +362,16 @@ class AnalysisManager {
       }
     });
 
-    // Ahora agregamos el monto máximo a la jerarquía
+    // Ahora agregamos el Asignado Inicial a la jerarquía
     maxBudgetByBlock.forEach((data) => {
       const keys = data.keys;
       
       if (!hierarchy.has(keys.generica)) {
-        hierarchy.set(keys.generica, { asignado: 0, comp: 0, denomRaw: '', hijas: new Map() });
+        hierarchy.set(keys.generica, { asignado: 0, aumento: 0, disminucion: 0, comp: 0, denomRaw: '', hijas: new Map() });
       }
       const genNode = hierarchy.get(keys.generica);
       if (!genNode.hijas.has(keys.especifica)) {
-        genNode.hijas.set(keys.especifica, { asignado: 0, comp: 0, denomRaw: '' });
+        genNode.hijas.set(keys.especifica, { asignado: 0, aumento: 0, disminucion: 0, comp: 0, denomRaw: '' });
       }
       
       if (denomIdx >= 0) {
@@ -401,15 +402,23 @@ class AnalysisManager {
         
         if (keys.mayor === partMayor) {
           if (!hierarchy.has(keys.generica)) {
-            hierarchy.set(keys.generica, { asignado: 0, comp: 0, hijas: new Map() });
+            hierarchy.set(keys.generica, { asignado: 0, aumento: 0, disminucion: 0, comp: 0, hijas: new Map() });
           }
           const genNode = hierarchy.get(keys.generica);
           if (!genNode.hijas.has(keys.especifica)) {
-            genNode.hijas.set(keys.especifica, { asignado: 0, comp: 0 });
+            genNode.hijas.set(keys.especifica, { asignado: 0, aumento: 0, disminucion: 0, comp: 0 });
           }
           
+          const valAum = parseFloat(r[aumIdx]) || 0;
+          const valDis = parseFloat(r[disIdx]) || 0;
           const valComp = parseFloat(r[compIdx]) || 0;
+          
+          genNode.aumento += valAum;
+          genNode.disminucion += valDis;
           genNode.comp += valComp;
+          
+          genNode.hijas.get(keys.especifica).aumento += valAum;
+          genNode.hijas.get(keys.especifica).disminucion += valDis;
           genNode.hijas.get(keys.especifica).comp += valComp;
         }
       }
@@ -427,9 +436,10 @@ class AnalysisManager {
     sortedGen.forEach(genKey => {
       const genData = hierarchy.get(genKey);
       
-      const gSaldo = genData.asignado - genData.comp;
-      const gPctComp = genData.asignado > 0 ? (genData.comp / genData.asignado) * 100 : (genData.comp > 0 ? 100 : 0);
-      const gPctDisp = genData.asignado > 0 ? (gSaldo / genData.asignado) * 100 : 0;
+      const gActualizado = genData.asignado + genData.aumento - genData.disminucion;
+      const gSaldo = gActualizado - genData.comp;
+      const gPctComp = gActualizado > 0 ? (genData.comp / gActualizado) * 100 : (genData.comp > 0 ? 100 : 0);
+      const gPctDisp = gActualizado > 0 ? (gSaldo / gActualizado) * 100 : 0;
       const gColorDisp = gSaldo >= 0 && gPctDisp > 50 ? '#5AD8A6' : '#E8684A';
       const gBarColor = gSaldo < 0 ? '#E8684A' : '#888888';
       
@@ -442,7 +452,7 @@ class AnalysisManager {
           <div class="analysis-col-header">
             <div class="analysis-col-title">${genKey} - ${denomGen}</div>
             <div class="dispo-labels" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
-              <span>Actualizado: <strong>${this._fmtMoney(genData.asignado)}</strong></span>
+              <span>Actualizado: <strong>${this._fmtMoney(gActualizado)}</strong></span>
               <span>Comp: <strong style="color:#F6BD16">${this._fmtMoney(genData.comp)}</strong></span>
               <span>Disp: <strong style="color:${gColorDisp}">${this._fmtMoney(gSaldo)}</strong></span>
             </div>
@@ -460,8 +470,9 @@ class AnalysisManager {
       const sortedEsp = Array.from(genData.hijas.keys()).sort();
       sortedEsp.forEach(espKey => {
         const espData = genData.hijas.get(espKey);
-        const eSaldo = espData.asignado - espData.comp;
-        const ePctComp = espData.asignado > 0 ? (espData.comp / espData.asignado) * 100 : (espData.comp > 0 ? 100 : 0);
+        const eActualizado = espData.asignado + espData.aumento - espData.disminucion;
+        const eSaldo = eActualizado - espData.comp;
+        const ePctComp = eActualizado > 0 ? (espData.comp / eActualizado) * 100 : (espData.comp > 0 ? 100 : 0);
         let denomEsp = espData.denomRaw || this._getDenom(espKey);
 
         cardHtml += `
@@ -469,7 +480,7 @@ class AnalysisManager {
               <div style="font-size: 11px; font-weight: bold; color: var(--color-primary-light); margin-bottom: 2px;">${espKey}</div>
               ${denomEsp ? `<div style="font-size: 9px; color: #aaa; margin-bottom: 6px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${denomEsp}</div>` : '<div style="margin-bottom: 4px;"></div>'}
               <div class="analysis-col-stats small">
-                <span title="Monto Actualizado">Actual: ${this._fmtMoney(espData.asignado)}</span>
+                <span title="Monto Actualizado">Actual: ${this._fmtMoney(eActualizado)}</span>
                 <span title="Comprometido" style="color:var(--app-warning)">Comp: ${this._fmtMoney(espData.comp)}</span>
                 <span title="Disponible" style="color:${eSaldo < 0 ? 'var(--app-danger)' : 'var(--app-success)'}">Disp: ${this._fmtMoney(eSaldo)}</span>
               </div>

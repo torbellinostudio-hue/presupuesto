@@ -187,9 +187,10 @@ class DataAggregator {
             g['Por Pagar'] += parseFloat(row[idx.porPagar]) || 0;
         });
 
-        // Recalcular Modificación para cada grupo
+        // Recalcular Modificación y Monto Actualizado para cada grupo (filtrado)
         for (const [, g] of groups) {
             g['Modificación'] = g['Aumento'] - g['Disminucion'];
+            g['Monto Actualizado'] = g['Asignado'] + g['Modificación'];
         }
     }
 
@@ -451,7 +452,6 @@ class DataAggregator {
         for (const blockId in blockBudgets) {
             const b = blockBudgets[blockId];
             totals['Asignado'] += b.asignado;
-            totals['Monto Actualizado'] += b.montoAct;
             totals['Pre Comprometido'] += b.preComp;
         }
 
@@ -464,6 +464,7 @@ class DataAggregator {
         });
 
         totals['Modificación'] = totals['Aumento'] - totals['Disminucion'];
+        totals['Monto Actualizado'] = totals['Asignado'] + totals['Modificación'];
         totals['Disponible'] = totals['Monto Actualizado'] - totals['Comprometido'];
         return totals;
     }
@@ -527,10 +528,10 @@ class DataAggregator {
             for (const blockId in g._blockBudgets) {
                 const b = g._blockBudgets[blockId];
                 g['Asignado'] += b.asignado;
-                g['Monto Actualizado'] += b.montoAct;
                 g['Pre Comprometido'] += b.preComp;
             }
             g['Modificación'] = g['Aumento'] - g['Disminucion'];
+            g['Monto Actualizado'] = g['Asignado'] + g['Modificación'];
         }
 
         return groups;
