@@ -324,7 +324,6 @@ class AnalysisManager {
     // Mapear todas las Genéricas -> Específicas
     // Estructura: map[generica] = { asignado, comp, denomRaw, hijas: map[especifica] -> { asignado, comp, denomRaw } }
     const hierarchy = new Map();
-    const processedBlocks = new Set();
 
     // Helper para formato
     const getClaves = (cuentaRaw) => {
@@ -334,7 +333,9 @@ class AnalysisManager {
       return { mayor, generica, especifica: c }; // la cuenta completa será la específica
     };
 
-    // 1. Asignado global (por bloque) -> Usamos Monto Actualizado
+    // 1. Asignado global (por bloque) -> Usamos Monto Actualizado (MÁXIMO por bloque)
+    const maxBudgetByBlock = new Map();
+
     this._rawRows.forEach(r => {
       const matchEp = !ep || String(r[epIdx] || '').trim() === ep;
       const matchAcc = !acc || String(r[aIdx] || '').trim() === acc;
@@ -346,33 +347,44 @@ class AnalysisManager {
         const keys = getClaves(pRaw);
         
         if (keys.mayor === partMayor) {
-          if (!hierarchy.has(keys.generica)) {
-            hierarchy.set(keys.generica, { asignado: 0, comp: 0, denomRaw: '', hijas: new Map() });
-          }
-          const genNode = hierarchy.get(keys.generica);
-          if (!genNode.hijas.has(keys.especifica)) {
-            genNode.hijas.set(keys.especifica, { asignado: 0, comp: 0, denomRaw: '' });
-          }
-          
-          if (denomIdx >= 0) {
-            const rDenom = String(r[denomIdx] || '').trim();
-            if (rDenom && !genNode.hijas.get(keys.especifica).denomRaw) {
-              genNode.hijas.get(keys.especifica).denomRaw = rDenom;
-            }
-            if (keys.especifica === keys.generica && rDenom && !genNode.denomRaw) {
-              genNode.denomRaw = rDenom;
-            }
-          }
-          
           const bId = String(r[blockIdx] || '');
-          if (bId && !processedBlocks.has(bId)) {
-            processedBlocks.add(bId);
-            const amt = parseFloat(r[actIdx]) || 0; // Se usa Monto Actualizado
-            genNode.asignado += amt;
-            genNode.hijas.get(keys.especifica).asignado += amt;
+          if (bId) {
+            const amt = parseFloat(r[actIdx]) || 0;
+            if (!maxBudgetByBlock.has(bId)) {
+               maxBudgetByBlock.set(bId, { amt: amt, keys: keys, denom: r[denomIdx] });
+            } else {
+               const current = maxBudgetByBlock.get(bId);
+               if (amt > current.amt) current.amt = amt;
+            }
           }
         }
       }
+    });
+
+    // Ahora agregamos el monto máximo a la jerarquía
+    maxBudgetByBlock.forEach((data) => {
+      const keys = data.keys;
+      
+      if (!hierarchy.has(keys.generica)) {
+        hierarchy.set(keys.generica, { asignado: 0, comp: 0, denomRaw: '', hijas: new Map() });
+      }
+      const genNode = hierarchy.get(keys.generica);
+      if (!genNode.hijas.has(keys.especifica)) {
+        genNode.hijas.set(keys.especifica, { asignado: 0, comp: 0, denomRaw: '' });
+      }
+      
+      if (denomIdx >= 0) {
+        const rDenom = String(data.denom || '').trim();
+        if (rDenom && !genNode.hijas.get(keys.especifica).denomRaw) {
+          genNode.hijas.get(keys.especifica).denomRaw = rDenom;
+        }
+        if (keys.especifica === keys.generica && rDenom && !genNode.denomRaw) {
+          genNode.denomRaw = rDenom;
+        }
+      }
+      
+      genNode.asignado += data.amt;
+      genNode.hijas.get(keys.especifica).asignado += data.amt;
     });
 
     // 2. Ejecución (filtrado por mes local)
