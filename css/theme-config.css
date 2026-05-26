@@ -1,0 +1,131 @@
+/* ================================================================
+   THEME-CONFIG.CSS — Sistema de Diseño Premium (Dark Mode)
+   ================================================================
+   Variables CSS centralizadas. Cambiar valores aquí
+   actualiza todo el dashboard automáticamente.
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* ---- TIPOGRAFÍA ---- */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.6875rem;   /* 11px */
+  --font-size-sm: 0.8125rem;   /* 13px */
+  --font-size-base: 0.9375rem; /* 15px */
+  --font-size-md: 1.0625rem;   /* 17px */
+  --font-size-lg: 1.25rem;     /* 20px */
+  --font-size-xl: 1.625rem;    /* 26px */
+  --font-size-2xl: 2.125rem;   /* 34px */
+  --font-size-3xl: 2.75rem;    /* 44px */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ---- COLORES BASE (HSL) ---- */
+  --hue-primary: 220;
+  --hue-accent: 160;
+  --hue-warning: 38;
+  --hue-danger: 0;
+  --hue-success: 145;
+
+  /* ---- COLORES OSCUROS PREMIUM ---- */
+  --color-bg:             hsl(225, 20%, 7%);
+  --color-bg-elevated:    hsl(225, 18%, 10%);
+  --color-surface:        hsl(225, 16%, 13%);
+  --color-surface-hover:  hsl(225, 16%, 16%);
+  --color-surface-glass:  hsla(225, 16%, 15%, 0.65);
+  --color-border:         hsla(220, 15%, 30%, 0.35);
+  --color-border-subtle:  hsla(220, 15%, 25%, 0.2);
+
+  /* ---- TEXTO ---- */
+  --color-text:           hsl(220, 20%, 92%);
+  --color-text-secondary: hsl(220, 12%, 65%);
+  --color-text-light:     hsl(220, 10%, 50%);
+  --color-text-muted:     hsl(220, 8%, 38%);
+
+  /* ---- PRIMARIO ---- */
+  --color-primary:        hsl(var(--hue-primary), 90%, 60%);
+  --color-primary-hover:  hsl(var(--hue-primary), 90%, 52%);
+  --color-primary-soft:   hsla(var(--hue-primary), 90%, 60%, 0.12);
+  --color-primary-glow:   hsla(var(--hue-primary), 90%, 60%, 0.25);
+
+  /* ---- ACENTO ---- */
+  --color-accent:         hsl(var(--hue-accent), 80%, 55%);
+  --color-accent-soft:    hsla(var(--hue-accent), 80%, 55%, 0.12);
+
+  /* ---- SEMÁNTICOS ---- */
+  --color-success:        hsl(var(--hue-success), 70%, 48%);
+  --color-success-soft:   hsla(var(--hue-success), 70%, 48%, 0.12);
+  --color-warning:        hsl(var(--hue-warning), 90%, 55%);
+  --color-warning-soft:   hsla(var(--hue-warning), 90%, 55%, 0.12);
+  --color-danger:         hsl(var(--hue-danger), 75%, 55%);
+  --color-danger-soft:    hsla(var(--hue-danger), 75%, 55%, 0.12);
+
+  /* ---- GRADIENTES ---- */
+  --gradient-primary:     linear-gradient(135deg, hsl(220, 90%, 55%), hsl(260, 85%, 60%));
+  --gradient-accent:      linear-gradient(135deg, hsl(160, 80%, 45%), hsl(190, 85%, 50%));
+  --gradient-warm:        linear-gradient(135deg, hsl(25, 95%, 55%), hsl(350, 85%, 55%));
+  --gradient-surface:     linear-gradient(180deg, hsla(225, 16%, 16%, 0.8), hsla(225, 16%, 12%, 0.9));
+
+  /* ---- ESPACIADO ---- */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* ---- BORDES ---- */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ---- SOMBRAS ---- */
+  --shadow-sm:  0 1px 3px hsla(0,0%,0%,0.25);
+  --shadow-md:  0 4px 12px hsla(0,0%,0%,0.3);
+  --shadow-lg:  0 8px 24px hsla(0,0%,0%,0.35);
+  --shadow-xl:  0 16px 48px hsla(0,0%,0%,0.4);
+  --shadow-glow: 0 0 20px var(--color-primary-glow);
+  --shadow-glass: 0 8px 32px hsla(0,0%,0%,0.2), inset 0 1px 0 hsla(0,0%,100%,0.05);
+
+  /* ---- GLASSMORPHISM ---- */
+  --glass-bg:       hsla(225, 16%, 14%, 0.6);
+  --glass-border:   1px solid hsla(220, 15%, 35%, 0.2);
+  --glass-backdrop:  blur(16px) saturate(180%);
+
+  /* ---- TRANSICIONES ---- */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.4s ease;
+  --transition-spring: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ---- PALETA DE GRÁFICOS (15 colores vibrantes) ---- */
+  --chart-1:  hsl(220, 90%, 60%);   /* Azul brillante */
+  --chart-2:  hsl(160, 75%, 48%);   /* Verde esmeralda */
+  --chart-3:  hsl(35, 95%, 58%);    /* Ámbar */
+  --chart-4:  hsl(350, 80%, 58%);   /* Rosa */
+  --chart-5:  hsl(270, 70%, 60%);   /* Púrpura */
+  --chart-6:  hsl(185, 80%, 50%);   /* Cian */
+  --chart-7:  hsl(15, 90%, 55%);    /* Naranja */
+  --chart-8:  hsl(95, 65%, 50%);    /* Lima */
+  --chart-9:  hsl(320, 70%, 55%);   /* Magenta */
+  --chart-10: hsl(200, 85%, 55%);   /* Celeste */
+  --chart-11: hsl(45, 90%, 55%);    /* Dorado */
+  --chart-12: hsl(145, 60%, 45%);   /* Jade */
+  --chart-13: hsl(290, 65%, 55%);   /* Violeta */
+  --chart-14: hsl(10, 80%, 50%);    /* Bermellón */
+  --chart-15: hsl(175, 70%, 45%);   /* Turquesa */
+
+  /* ---- LOGO / BRANDING ---- */
+  --app-logo-url: none;
+  --app-logo-width: 36px;
+  --app-logo-height: 36px;
+}

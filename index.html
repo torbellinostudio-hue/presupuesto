@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Ejecución Presupuestaria | ONAPRE 2025</title>
+  <meta name="description"
+    content="Dashboard interactivo para monitorear la ejecución presupuestaria, gastos, KPIs y análisis del Mayor Presupuestario ONAPRE.">
+
+  <!-- ============================================================
+    TEMA Y ESTILOS
+  ============================================================ -->
+  <link rel="stylesheet" href="css/theme-config.css">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- ============================================================
+    DEPENDENCIAS EXTERNAS (CDN)
+  ============================================================ -->
+  <!-- SheetJS para leer Excel -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+  <!-- ECharts para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+
+  <!-- Tabulator para tabla dinámica -->
+  <link href="https://unpkg.com/tabulator-tables@6.2.0/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/tabulator-tables@6.2.0/dist/js/tabulator.min.js"></script>
+</head>
+
+<body>
+
+  <!-- ============================================================
+    HEADER
+  ============================================================ -->
+  <header class="app-header">
+    <div class="header-brand">
+      <img id="logo" src="" alt="Logo" class="app-logo">
+      <h1 class="app-title">Ejecución Presupuestaria</h1>
+    </div>
+    <div class="header-info">
+      <span class="version-badge">v2.0.0</span>
+    </div>
+  </header>
+
+  <!-- ============================================================
+    CONTENEDOR PRINCIPAL
+  ============================================================ -->
+  <main class="app-main">
+
+    <!-- ---- CARGA DE ARCHIVO ---- -->
+    <section id="upload-section" class="card upload-card">
+      <div class="upload-zone" id="dropZone">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 16V4M8 8l4-4 4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h2>Arrastra tu archivo aquí</h2>
+        <p class="upload-subtitle">o haz clic para seleccionar un archivo del Mayor Presupuestario</p>
+        <p class="upload-formats">Formatos soportados: <strong>.xlsx</strong>, <strong>.xls</strong>,
+          <strong>.csv</strong>
+        </p>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+        <button class="btn btn-primary btn-select-file" id="btnSelectFile">Seleccionar Archivo</button>
+      </div>
+      <div id="fileInfo" class="file-info hidden">
+        <div class="file-details">
+          <span class="file-icon">📄</span>
+          <span id="fileName" class="file-name"></span>
+          <span id="fileSize" class="file-size"></span>
+        </div>
+        <button class="btn btn-secondary" id="btnChangeFile">Cambiar archivo</button>
+        <button class="btn btn-primary" id="btnProcess">Procesar Archivo</button>
+      </div>
+      <div id="progressBar" class="progress-bar hidden">
+        <div class="progress-fill" id="progressFill"></div>
+        <span class="progress-text" id="progressText">Procesando...</span>
+      </div>
+    </section>
+
+    <!-- ---- KPIs GLOBALES ---- -->
+    <section id="kpi-section" class="kpi-section hidden">
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card" data-color="blue" id="kpi-asignado">
+          <div class="kpi-header">
+            <span class="kpi-label">Presupuesto Asignado</span>
+            <div class="kpi-icon">💰</div>
+          </div>
+          <div class="kpi-value" data-target="0">0</div>
+          <div class="kpi-sub">Presupuesto original</div>
+        </div>
+        <div class="kpi-card" data-color="purple" id="kpi-modificaciones">
+          <div class="kpi-header">
+            <span class="kpi-label">Modificaciones</span>
+            <div class="kpi-icon">🔄</div>
+          </div>
+          <div class="kpi-value" data-target="0">0</div>
+          <div class="kpi-sub">Aumentos - Disminuciones</div>
+        </div>
+        <div class="kpi-card" data-color="blue" id="kpi-actualizado">
+          <div class="kpi-header">
+            <span class="kpi-label">Presupuesto Actualizado</span>
+            <div class="kpi-icon">💰</div>
+          </div>
+          <div class="kpi-value" data-target="0">0</div>
+          <div class="kpi-sub">Total Monto Actualizado</div>
+        </div>
+        <div class="kpi-card" data-color="orange" id="kpi-comprometido">
+          <div class="kpi-header">
+            <span class="kpi-label">Total Comprometido</span>
+            <div class="kpi-icon">📋</div>
+          </div>
+          <div class="kpi-value" data-target="0">0</div>
+          <div class="kpi-sub">Compromisos formales</div>
+        </div>
+        <div class="kpi-card" data-color="cyan" id="kpi-causado">
+          <div class="kpi-header">
+            <span class="kpi-label">Total Causado</span>
+            <div class="kpi-icon">🧾</div>
+          </div>
+          <div class="kpi-value" data-target="0">0</div>
+          <div class="kpi-sub">Devengado / Causado</div>
+        </div>
+        <div class="kpi-card" data-color="green" id="kpi-pagado">
+          <div class="kpi-header">
+            <span class="kpi-label">Total Pagado</span>
+            <div class="kpi-icon">✅</div>
+          </div>
+          <div class="kpi-value" data-target="0">0</div>
+          <div class="kpi-sub">Ejecutado en efectivo</div>
+        </div>
+        <div class="kpi-card" data-color="yellow" id="kpi-ejec-comp">
+          <div class="kpi-header">
+            <span class="kpi-label">% Ejecución (Comp)</span>
+            <div class="kpi-icon">📊</div>
+          </div>
+          <div class="kpi-value" data-target="0">0%</div>
+          <div class="kpi-sub">Comprometido / Actualizado</div>
+        </div>
+        <div class="kpi-card" data-color="yellow" id="kpi-ejec-caus">
+          <div class="kpi-header">
+            <span class="kpi-label">% Ejecución (Causado)</span>
+            <div class="kpi-icon">📊</div>
+          </div>
+          <div class="kpi-value" data-target="0">0%</div>
+          <div class="kpi-sub">Causado / Actualizado</div>
+        </div>
+        <div class="kpi-card" data-color="red" id="kpi-saldo">
+          <div class="kpi-header">
+            <span class="kpi-label">Saldo por Ejecutar</span>
+            <div class="kpi-icon">⏳</div>
+          </div>
+          <div class="kpi-value" data-target="0">0</div>
+          <div class="kpi-sub">Actualizado − Comprometido</div>
+        </div>
+        <div class="kpi-card kpi-card-wide" data-color="purple" id="kpi-area">
+          <div class="kpi-header">
+            <span class="kpi-label">Ejecución por Área</span>
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </div>
+          </div>
+          <div class="kpi-area-bars" id="kpi-area-bars">
+            <div class="kpi-area-row" data-area="AC1">
+              <span class="kpi-area-label">AC1</span>
+              <div class="kpi-area-track">
+                <div class="kpi-area-fill" style="width:0%"></div>
+              </div>
+              <span class="kpi-area-pct">0%</span>
+            </div>
+            <div class="kpi-area-row" data-area="AC2">
+              <span class="kpi-area-label">AC2</span>
+              <div class="kpi-area-track">
+                <div class="kpi-area-fill" style="width:0%"></div>
+              </div>
+              <span class="kpi-area-pct">0%</span>
+            </div>
+            <div class="kpi-area-row" data-area="AC3">
+              <span class="kpi-area-label">AC3</span>
+              <div class="kpi-area-track">
+                <div class="kpi-area-fill" style="width:0%"></div>
+              </div>
+              <span class="kpi-area-pct">0%</span>
+            </div>
+            <div class="kpi-area-row" data-area="PR1">
+              <span class="kpi-area-label">PR1</span>
+              <div class="kpi-area-track">
+                <div class="kpi-area-fill" style="width:0%"></div>
+              </div>
+              <span class="kpi-area-pct">0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- FILTROS GLOBALES ---- -->
+    <section id="filters-section" class="filters-section hidden">
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label class="filter-label" for="filtro-mes">Mes</label>
+          <select id="filtro-mes" class="filter-select">
+            <option value="">Todos los meses</option>
+          </select>
+        </div>
+        <div class="filter-group filter-group-toggle filter-group-small">
+          <label class="filter-label">Modalidad</label>
+          <div class="toggle-group" id="toggle-mes-modalidad">
+            <button class="toggle-btn active" data-value="acumulado">📈 Acumulado</button>
+            <button class="toggle-btn" data-value="mensual">📅 Mensual</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="filtro-fecha-inicio">Desde</label>
+          <input type="date" id="filtro-fecha-inicio" class="filter-input">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="filtro-fecha-fin">Hasta</label>
+          <input type="date" id="filtro-fecha-fin" class="filter-input">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="filtro-estructura">Estructura Programática</label>
+          <select id="filtro-estructura" class="filter-select">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="filtro-partida">Partida Genérica</label>
+          <select id="filtro-partida" class="filter-select">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="filtro-partida-especifica">Partida Específica</label>
+          <select id="filtro-partida-especifica" class="filter-select" disabled>
+            <option value="">Todas</option>
+          </select>
+        </div>
+
+        <div class="filters-actions">
+          <button class="btn btn-ghost btn-small" id="btn-reset-filters">✕ Limpiar</button>
+        </div>
+      </div>
+      <div class="active-filters" id="active-filters"></div>
+    </section>
+
+    <!-- ---- DATOS UNIFICADOS (AGREGACIÓN JERÁRQUICA) ---- -->
+    <section id="aggregation-section" class="aggregation-section hidden">
+      <div class="aggregation-header">
+        <h2 class="section-title"><span class="section-icon">📊</span> Datos Unificados por Jerarquía Presupuestaria
+        </h2>
+        <span class="aggregation-info-badge">Datos agregados · Vista simplificada</span>
+      </div>
+
+      <!-- Totales globales compactos -->
+      <div class="summary-totals-bar" id="aggregation-totals"></div>
+
+      <!-- Tabs de navegación -->
+      <div class="aggregation-tabs" id="aggregation-tabs"></div>
+
+      <!-- Paneles de contenido -->
+      <div id="aggregation-panels"></div>
+    </section>
+
+    <!-- ---- GRÁFICOS ---- -->
+    <section id="charts-section" class="charts-section hidden">
+      <div class="charts-grid">
+        <div class="chart-card" id="card-chart-estructura">
+          <div class="chart-title"><span class="chart-icon">🏛️</span> Distribución por Estructura</div>
+          <div class="chart-container" id="chart-estructura"></div>
+        </div>
+        <div class="chart-card" id="card-chart-partidas">
+          <div class="chart-title"><span class="chart-icon">🥧</span> <span id="title-chart-partidas">Distribución por
+              Partida</span></div>
+          <div class="chart-container" id="chart-partidas"></div>
+        </div>
+        <div class="chart-card chart-card-full">
+          <div class="chart-title"><span class="chart-icon">🗺️</span> Mapa de Distribución Presupuestaria</div>
+          <div class="chart-container" id="chart-treemap"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><span class="chart-icon">📈</span> Evolución Mensual de Gastos</div>
+          <div class="chart-container" id="chart-evolucion"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><span class="chart-icon">📊</span> Disponibilidad vs Ejecución</div>
+          <div class="chart-container" id="chart-disponibilidad"></div>
+        </div>
+
+        <div class="chart-card chart-card-full">
+          <div class="chart-title"><span class="chart-icon">🍩</span> Desglose Detallado de Gastos</div>
+          <div class="chart-container" id="chart-sunburst"></div>
+        </div>
+        <div class="chart-card chart-card-full">
+          <div class="chart-title"><span class="chart-icon">🎯</span> Ejecución por Acción Específica</div>
+          <div class="chart-container" id="chart-acciones"></div>
+        </div>
+        <div class="chart-card chart-card-full">
+          <div class="chart-title"><span class="chart-icon">🏛️</span> Presupuesto vs Ejecución (Compromiso, Causado,
+            Pagado) por Estructura</div>
+          <div class="chart-container" id="chart-comparativo-estructura"></div>
+        </div>
+        <div class="chart-card chart-card-full">
+          <div class="chart-title"><span class="chart-icon">📑</span> Presupuesto vs Ejecución (Compromiso, Causado,
+            Pagado) por Partidas</div>
+          <div class="chart-container" id="chart-comparativo-partida"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- ANÁLISIS ESPECÍFICOS ---- -->
+    <section id="analysis-section" class="analysis-section hidden">
+      <div class="analysis-section-header">
+        <h2 class="section-title"><span class="section-icon">🔍</span> Análisis Específicos (Explorador)</h2>
+        <div class="analysis-local-filters">
+          <label for="analysis-mes-select">Mes:</label>
+          <select id="analysis-mes-select" class="filter-select">
+            <option value="">Todos los meses</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="analysis-grid">
+        <!-- Panel Único: Disponibilidad y Traspasos -->
+        <div class="analysis-panel open" id="analysis-panel-dispo" style="grid-column: 1 / -1;">
+          <div class="analysis-header">
+            <h3><span class="chart-icon">🏛️</span> Disponibilidad por Estructura (Traspasos)</h3>
+          </div>
+          <div class="analysis-body">
+            <div class="analysis-controls">
+              <select id="analysis-ep-select" class="filter-select">
+                <option value="">Seleccione Estructura...</option>
+              </select>
+              <select id="analysis-partida-mayor-select" class="filter-select" disabled>
+                <option value="">Seleccione Partida Mayor...</option>
+              </select>
+            </div>
+            <div class="analysis-content">
+              <div id="analysis-grid-container" class="analysis-grid-layout">
+                <!-- Se poblará dinámicamente con columnas para cada Genérica -->
+                <div class="dispo-empty-state" style="grid-column: 1/-1;">Seleccione una estructura y partida para ver su disponibilidad</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- TABLA DE DATOS (oculta por defecto, se muestra con botón) ---- -->
+    <section id="table-section-wrapper" class="table-section-wrapper hidden">
+      <div class="table-toggle-bar" id="tableToggleBar">
+        <h2>📋 Datos Procesados</h2>
+        <div class="table-toggle-indicator">
+          <span id="tableRowCount">0 registros</span>
+          <span class="table-toggle-arrow" id="tableToggleArrow">▼</span>
+        </div>
+      </div>
+      <div class="table-content">
+        <div class="table-inner">
+          <div class="table-card">
+            <!-- Panel de Generador de Reportes -->
+            <div class="custom-report-builder" style="background: var(--color-surface-light); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 15px; padding: 15px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin: 0; color: var(--color-text-primary);"><span class="chart-icon">⚙️</span> Generador de Reportes (Tabla Dinámica)</h4>
+                <div class="report-actions">
+                  <button class="btn btn-primary btn-small" id="btnGenerateReport">🚀 Generar Reporte</button>
+                  <button class="btn btn-ghost btn-small" id="btnClearReport">🧹 Limpiar / Vista Detallada</button>
+                </div>
+              </div>
+              <p style="font-size: 11px; color: var(--color-text-secondary); margin-bottom: 10px;">Selecciona las dimensiones en el orden que deseas cruzarlas:</p>
+              <div class="report-dimensions-container" id="reportDimensionsContainer" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="report-pill" data-dim="mes">📅 Mes <span class="pill-badge" style="display:none"></span></button>
+                <button class="report-pill" data-dim="estructura">🏛️ Estructura <span class="pill-badge" style="display:none"></span></button>
+                <button class="report-pill" data-dim="accion">⚙️ Acción Específica <span class="pill-badge" style="display:none"></span></button>
+                <button class="report-pill" data-dim="generica">📑 Genérica <span class="pill-badge" style="display:none"></span></button>
+                <button class="report-pill" data-dim="especifica">📄 Específica <span class="pill-badge" style="display:none"></span></button>
+                <button class="report-pill" data-dim="subespecifica">📌 Sub-específica <span class="pill-badge" style="display:none"></span></button>
+                <button class="report-pill" data-dim="proveedor">🏢 Proveedor <span class="pill-badge" style="display:none"></span></button>
+              </div>
+            </div>
+
+            <div class="table-header">
+              <div class="table-controls" style="width: 100%; display: flex; justify-content: space-between;">
+                <input type="text" id="tableSearch" class="filter-input" placeholder="Buscar en la tabla..."
+                  style="min-width: 250px;">
+                <div>
+                  <button class="btn btn-ghost btn-small" id="btnExportCSV">📥 Exportar Vista Actual (CSV)</button>
+                </div>
+              </div>
+            </div>
+            <div id="tabulator-table"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+    FOOTER
+  ============================================================ -->
+  <footer class="app-footer">
+    <p>&copy; <span id="year"></span> — Dashboard de Ejecución Presupuestaria. ONAPRE.</p>
+  </footer>
+
+  <!-- ============================================================
+    MÓDULOS (orden de carga importante)
+  ============================================================ -->
+  <script src="js/denominaciones.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/data-manager.js"></script>
+  <script src="js/data-aggregator.js"></script>
+  <script src="js/aggregator-ui.js"></script>
+  <script src="js/excel-processor.js"></script>
+  <script src="js/filter-manager.js"></script>
+  <script src="js/kpi-manager.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/analysis-manager.js"></script>
+  <script src="js/ui-controller.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
