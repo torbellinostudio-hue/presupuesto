@@ -588,6 +588,9 @@ class UIController {
 
     // Índices de columnas presupuestarias (RAW)
     const rawCuentaIdx = getRawIdx('Cuenta');
+    const rawEpIdx = getRawIdx('Estructura Programatica');
+    const rawAccionIdx = getRawIdx('Accion Especifica');
+    const rawUnidadIdx = getRawIdx('Unidad Ejecutora');
     const rawAsignadoIdx = getRawIdx('Asignado');
     const rawAumentoIdx = getRawIdx('Aumento');
     const rawDisminucionIdx = getRawIdx('Disminucion');
@@ -603,12 +606,18 @@ class UIController {
       const { compoundKey, parts } = buildCompoundKey(row, true);
       if (!compoundKey) return;
       if (!rawBudgetMap.has(compoundKey)) {
-        rawBudgetMap.set(compoundKey, { parts, cuentas: new Set(), asignado: 0, aumento: 0, disminucion: 0 });
+        rawBudgetMap.set(compoundKey, { parts, blocks: new Set(), asignado: 0, aumento: 0, disminucion: 0 });
       }
       const entry = rawBudgetMap.get(compoundKey);
+      
       const cuenta = String(row[rawCuentaIdx] || '').trim();
-      if (cuenta && !entry.cuentas.has(cuenta)) {
-        entry.cuentas.add(cuenta);
+      const ep = String(row[rawEpIdx] || '').trim();
+      const accion = String(row[rawAccionIdx] || '').trim();
+      const unidad = String(row[rawUnidadIdx] || '').trim();
+      const blockId = `${ep}│${accion}│${unidad}│${cuenta}`;
+
+      if (cuenta && ep && !entry.blocks.has(blockId)) {
+        entry.blocks.add(blockId);
         entry.asignado += parseFloat(row[rawAsignadoIdx]) || 0;
         entry.aumento += parseFloat(row[rawAumentoIdx]) || 0;
         entry.disminucion += parseFloat(row[rawDisminucionIdx]) || 0;
