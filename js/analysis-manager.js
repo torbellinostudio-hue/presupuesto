@@ -430,13 +430,13 @@ class AnalysisManager {
           <div class="analysis-col-header">
             <div class="analysis-col-title">${genKey} - ${denomGen}</div>
             <div class="dispo-labels" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
-              <span>Actualizado: <strong>${fmt(genData.asignado)}</strong></span>
-              <span>Comp: <strong style="color:#F6BD16">${fmt(genData.comp)}</strong></span>
-              <span>Disp: <strong style="color:${gColorDisp}">${fmt(gSaldo)}</strong></span>
+              <span>Actualizado: <strong>${this._fmtMoney(genData.asignado)}</strong></span>
+              <span>Comp: <strong style="color:#F6BD16">${this._fmtMoney(genData.comp)}</strong></span>
+              <span>Disp: <strong style="color:${gColorDisp}">${this._fmtMoney(gSaldo)}</strong></span>
             </div>
             <div class="dispo-bar-wrapper" style="margin-top: 6px;">
               <div class="dispo-bar-bg" style="background: rgba(255,255,255,0.1);">
-                <div class="dispo-bar-fill" style="width: ${gPctComp > 100 ? 100 : gPctComp}%; background: ${gBarColor};" title="Comprometido: ${fmt(genData.comp)}"></div>
+                <div class="dispo-bar-fill" style="width: ${gPctComp > 100 ? 100 : gPctComp}%; background: ${gBarColor};" title="Comprometido: ${this._fmtMoney(genData.comp)}"></div>
               </div>
             </div>
             <button class="toggle-records-btn">Ver Específicas ▼</button>
@@ -457,13 +457,13 @@ class AnalysisManager {
               <div style="font-size: 11px; font-weight: bold; color: var(--color-primary-light); margin-bottom: 2px;">${espKey}</div>
               ${denomEsp ? `<div style="font-size: 9px; color: #aaa; margin-bottom: 6px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${denomEsp}</div>` : '<div style="margin-bottom: 4px;"></div>'}
               <div class="analysis-col-stats small">
-                <span title="Monto Actualizado">Actual: ${fmt(espData.asignado)}</span>
-                <span title="Comprometido" style="color:var(--app-warning)">Comp: ${fmt(espData.comp)}</span>
-                <span title="Disponible" style="color:${eSaldo < 0 ? 'var(--app-danger)' : 'var(--app-success)'}">Disp: ${fmt(eSaldo)}</span>
+                <span title="Monto Actualizado">Actual: ${this._fmtMoney(espData.asignado)}</span>
+                <span title="Comprometido" style="color:var(--app-warning)">Comp: ${this._fmtMoney(espData.comp)}</span>
+                <span title="Disponible" style="color:${eSaldo < 0 ? 'var(--app-danger)' : 'var(--app-success)'}">Disp: ${this._fmtMoney(eSaldo)}</span>
               </div>
               <div class="dispo-bar-wrapper" style="margin-top: 4px;">
                 <div class="dispo-bar-bg" style="height: 4px; background: rgba(255,255,255,0.1);">
-                  <div class="dispo-bar-fill" style="width: ${ePctComp > 100 ? 100 : ePctComp}%; background: ${eSaldo < 0 ? '#E8684A' : '#888888'};" title="Comprometido: ${fmt(espData.comp)}"></div>
+                  <div class="dispo-bar-fill" style="width: ${ePctComp > 100 ? 100 : ePctComp}%; background: ${eSaldo < 0 ? '#E8684A' : '#888888'};" title="Comprometido: ${this._fmtMoney(espData.comp)}"></div>
                 </div>
               </div>
             </div>
