@@ -232,6 +232,12 @@
           </select>
         </div>
         <div class="filter-group">
+          <label class="filter-label" for="filtro-unidad">Unidad Ejecutora</label>
+          <select id="filtro-unidad" class="filter-select">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filter-group">
           <label class="filter-label" for="filtro-partida">Partida Genérica</label>
           <select id="filtro-partida" class="filter-select">
             <option value="">Todas</option>
@@ -338,6 +344,9 @@
               <select id="analysis-ep-select" class="filter-select">
                 <option value="">Seleccione Estructura...</option>
               </select>
+              <select id="analysis-unidad-select" class="filter-select" disabled>
+                <option value="">Seleccione Unidad...</option>
+              </select>
               <select id="analysis-partida-mayor-select" class="filter-select" disabled>
                 <option value="">Seleccione Partida Mayor...</option>
               </select>
@@ -379,6 +388,7 @@
                 <button class="report-pill" data-dim="mes">📅 Mes <span class="pill-badge" style="display:none"></span></button>
                 <button class="report-pill" data-dim="estructura">🏛️ Estructura <span class="pill-badge" style="display:none"></span></button>
                 <button class="report-pill" data-dim="accion">⚙️ Acción Específica <span class="pill-badge" style="display:none"></span></button>
+                <button class="report-pill" data-dim="unidad">🏢 Unidad Ejecutora <span class="pill-badge" style="display:none"></span></button>
                 <button class="report-pill" data-dim="generica">📑 Genérica <span class="pill-badge" style="display:none"></span></button>
                 <button class="report-pill" data-dim="especifica">📄 Específica <span class="pill-badge" style="display:none"></span></button>
                 <button class="report-pill" data-dim="subespecifica">📌 Sub-específica <span class="pill-badge" style="display:none"></span></button>

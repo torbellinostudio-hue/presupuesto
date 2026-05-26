@@ -53,6 +53,7 @@ class DataAggregator {
         this._idx = {
             ep: idx('Estructura Programatica'),
             accion: idx('Accion Especifica'),
+            unidad: idx('Unidad Ejecutora'),
             partida: idx('Partida'),
             generica: idx('Generica'),
             especifica: idx('Especifica'),
@@ -156,6 +157,7 @@ class DataAggregator {
         const keyConfig = {
             partida: { getKey: (row) => String(row[idx.partida] || '').trim() },
             ep: { getKey: (row) => String(row[idx.ep] || '').trim() },
+            unidad: { getKey: (row) => String(row[idx.unidad] || '').trim() },
             generica: { getKey: (row) => String(row[idx.generica] || '').trim() },
             especifica: { getKey: (row) => String(row[idx.especifica] || '').trim() },
             subespec: { getKey: (row) => String(row[idx.subespec] || '').trim() },
@@ -432,7 +434,8 @@ class DataAggregator {
             const cuenta = String(row[idx.cuenta] || '').trim();
             const ep = String(row[idx.ep] || '').trim();
             const accion = String(row[idx.accion] || '').trim();
-            const blockId = `${ep}│${accion}│${cuenta}`;
+            const unidad = String(row[idx.unidad] || '').trim();
+            const blockId = `${ep}│${accion}│${unidad}│${cuenta}`;
 
             if (cuenta && ep) {
                 if (!blockBudgets[blockId]) {
@@ -484,6 +487,7 @@ class DataAggregator {
         const keyConfig = {
             partida: { index: idx.partida, label: 'Partida' },
             ep: { index: idx.ep, label: 'Estructura Programatica' },
+            unidad: { index: idx.unidad, label: 'Unidad Ejecutora' },
             generica: { index: idx.generica, label: 'Generica' },
             especifica: { index: idx.especifica, label: 'Especifica' },
             subespec: { index: idx.subespec, label: 'Sub-especifica' },
@@ -537,7 +541,8 @@ class DataAggregator {
         const cuenta = String(row[idx.cuenta] || '').trim();
         const ep = String(row[idx.ep] || '').trim();
         const accion = String(row[idx.accion] || '').trim();
-        const blockId = `${ep}│${accion}│${cuenta}`;
+        const unidad = String(row[idx.unidad] || '').trim();
+        const blockId = `${ep}│${accion}│${unidad}│${cuenta}`;
 
         // Encontrar el presupuesto máximo para cada bloque
         if (cuenta && ep) {

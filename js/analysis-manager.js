@@ -22,6 +22,7 @@ class AnalysisManager {
     // Referencias DOM
     this._mesSelect = document.getElementById('analysis-mes-select');
     this._epSelect = document.getElementById('analysis-ep-select');
+    this._unidadSelect = document.getElementById('analysis-unidad-select');
     this._partidaMayorSelect = document.getElementById('analysis-partida-mayor-select');
     this._gridContainer = document.getElementById('analysis-grid-container');
 
@@ -31,6 +32,7 @@ class AnalysisManager {
   _bindEvents() {
     if (this._mesSelect) this._mesSelect.addEventListener('change', () => this.refreshPanels());
     if (this._epSelect) this._epSelect.addEventListener('change', () => this._onEPChange());
+    if (this._unidadSelect) this._unidadSelect.addEventListener('change', () => this._onUnidadChange());
     if (this._partidaMayorSelect) this._partidaMayorSelect.addEventListener('change', () => this._updatePanelDispo());
 
     if (this._gridContainer) {
@@ -138,6 +140,8 @@ class AnalysisManager {
   _onEPChange() {
     const ep = this._epSelect.value;
     if (!ep) {
+      this._unidadSelect.innerHTML = '<option value="">Seleccione Unidad...</option>';
+      this._unidadSelect.disabled = true;
       this._partidaMayorSelect.innerHTML = '<option value="">Seleccione Partida Mayor...</option>';
       this._partidaMayorSelect.disabled = true;
       this._updatePanelDispo();
@@ -146,11 +150,50 @@ class AnalysisManager {
 
     const h = this._headers;
     const epIdx = h.indexOf('Estructura Programatica');
-    const cuentaIdx = h.indexOf('Cuenta'); // Usamos 'Cuenta' en vez de 'Partida'
-    const genSet = new Set();
+    const uIdx = h.indexOf('Unidad Ejecutora');
+    const uniSet = new Set();
 
     this._rawRows.forEach(r => {
       if (String(r[epIdx] || '').trim() === ep) {
+        const u = String(r[uIdx] || '').trim();
+        if (u) uniSet.add(u);
+      }
+    });
+
+    const sortedUni = [...uniSet].sort();
+    this._unidadSelect.innerHTML = '<option value="">Seleccione Unidad...</option>';
+    sortedUni.forEach(u => {
+      this._unidadSelect.innerHTML += `<option value="${u}">${u.length > 50 ? u.slice(0, 48)+'...' : u}</option>`;
+    });
+    this._unidadSelect.disabled = false;
+    
+    // Auto-seleccionar la primera Unidad si hay alguna
+    if (this._unidadSelect.options.length > 1) {
+      this._unidadSelect.selectedIndex = 1;
+      this._onUnidadChange();
+    } else {
+      this._onUnidadChange(); // trigger to clear children
+    }
+  }
+
+  _onUnidadChange() {
+    const ep = this._epSelect.value;
+    const uni = this._unidadSelect.value;
+    if (!ep || !uni) {
+      this._partidaMayorSelect.innerHTML = '<option value="">Seleccione Partida Mayor...</option>';
+      this._partidaMayorSelect.disabled = true;
+      this._updatePanelDispo();
+      return;
+    }
+
+    const h = this._headers;
+    const epIdx = h.indexOf('Estructura Programatica');
+    const uIdx = h.indexOf('Unidad Ejecutora');
+    const cuentaIdx = h.indexOf('Cuenta'); 
+    const genSet = new Set();
+
+    this._rawRows.forEach(r => {
+      if (String(r[epIdx] || '').trim() === ep && String(r[uIdx] || '').trim() === uni) {
         const p = String(r[cuentaIdx] || '').trim();
         if (p) {
           const mayor = p.replace(/[^0-9]/g, '').substring(0, 3);
@@ -196,10 +239,11 @@ class AnalysisManager {
      ================================================================ */
   _updatePanelDispo() {
     const ep = this._epSelect.value;
+    const uni = this._unidadSelect.value;
     const partMayor = this._partidaMayorSelect.value;
 
-    if (!ep || !partMayor) {
-      this._gridContainer.innerHTML = '<div class="dispo-empty-state" style="grid-column: 1/-1;">Seleccione una estructura y partida para ver su disponibilidad en cuadrícula.</div>';
+    if (!ep || !uni || !partMayor) {
+      this._gridContainer.innerHTML = '<div class="dispo-empty-state" style="grid-column: 1/-1;">Seleccione una estructura, unidad y partida para ver su disponibilidad en cuadrícula.</div>';
       return;
     }
 
@@ -226,7 +270,7 @@ class AnalysisManager {
 
     // 1. Asignado global (por bloque)
     this._rawRows.forEach(r => {
-      if (String(r[epIdx] || '').trim() === ep) {
+      if (String(r[epIdx] || '').trim() === ep && String(r[h.indexOf('Unidad Ejecutora')] || '').trim() === uni) {
         const pRaw = r[cuentaIdx];
         if (!pRaw) return;
         const keys = getClaves(pRaw);
@@ -264,7 +308,7 @@ class AnalysisManager {
     // 2. Ejecución (filtrado por mes local)
     const localRows = this._getLocalFilteredRows();
     localRows.forEach(r => {
-      if (String(r[epIdx] || '').trim() === ep) {
+      if (String(r[epIdx] || '').trim() === ep && String(r[h.indexOf('Unidad Ejecutora')] || '').trim() === uni) {
         const pRaw = r[cuentaIdx];
         if (!pRaw) return;
         const keys = getClaves(pRaw);

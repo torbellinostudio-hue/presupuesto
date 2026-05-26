@@ -55,8 +55,8 @@ class ExcelProcessor {
 
   transform(rawData) {
     const { estructuras, cuentas } = this._extractHierarchy(rawData);
-    // Agregamos 4 columnas al inicio para almacenar la jerarquía (EP, Accion, Cuenta, Denom)
-    const shiftedData = rawData.map(row => ['', '', '', '', ...row]);
+    // Agregamos 5 columnas al inicio para almacenar la jerarquía (EP, Accion, Unidad, Cuenta, Denom)
+    const shiftedData = rawData.map(row => ['', '', '', '', '', ...row]);
     this._assignEPValues(shiftedData, estructuras);
     this._assignCuentaValues(shiftedData, cuentas);
 
@@ -90,29 +90,21 @@ class ExcelProcessor {
     const cuentas = [];
     let currentEP = '';
     let currentAccion = '';
+    let currentUnidad = '';
     for (let i = 0; i < rawData.length; i++) {
       const row = rawData[i];
       const col0 = String(row[0] || '').trim();
 
       if (col0 === this._markers.ESTRUCTURA_PROGRAMATICA) {
         if (i + 1 < rawData.length) currentEP = String(rawData[i + 1][0] || '').trim();
-        
-        let candidate = String(rawData[i + 2]?.[0] || '').trim();
-        let nextCandidate = String(rawData[i + 3]?.[0] || '').trim();
-        
-        // En los proyectos (PR), hay un nivel intermedio de "Acción" (ej. "ACC1")
-        // y la "Acción Específica" real (ej. "003") está en la fila i+3.
-        if (/^ACC\d+\b/i.test(candidate) || (/^PR\d*\b/i.test(currentEP) && /^\w{3,4}\b/.test(nextCandidate))) {
-            currentAccion = nextCandidate;
-        } else {
-            currentAccion = candidate;
-        }
+        if (i + 2 < rawData.length) currentAccion = String(rawData[i + 2][0] || '').trim();
+        if (i + 3 < rawData.length) currentUnidad = String(rawData[i + 3][0] || '').trim();
 
         estructuras.push({
           rowIndex: i,
           programa: currentEP,
-          accionCentral: String(rawData[i + 2]?.[0] || '').trim(),
-          accionEspecifica: currentAccion
+          accionEspecifica: currentAccion,
+          unidadEjecutora: currentUnidad
         });
       }
 
@@ -133,6 +125,7 @@ class ExcelProcessor {
           denominacion: String(row[2] || '').trim(),
           currentEP,
           currentAccion,
+          currentUnidad,
           // Si la cuenta tiene montos en la misma fila, los guardamos para usarlos después si hacen falta
           budgetAsignado: budgetNums.length > 0 ? budgetNums[0] : null,
           budgetMontoAct: budgetNums.length >= 4 ? budgetNums[3] : null
@@ -144,14 +137,13 @@ class ExcelProcessor {
 
   _assignEPValues(shiftedData, estructuras) {
     for (let i = 0; i < shiftedData.length; i++) {
-      const colE = String(shiftedData[i][4] || '').trim();
+      const colE = String(shiftedData[i][5] || '').trim();
       if (colE === this._markers.ESTRUCTURA_PROGRAMATICA) {
         const ep = estructuras.find(e => e.rowIndex === i);
         if (ep) {
-          // Escribir en las filas siguientes al marcador:
-          // i+1 = fila del código de EP, i+2 = fila de la Acción Específica
           if (i + 1 < shiftedData.length && shiftedData[i + 1]) shiftedData[i + 1][0] = ep.programa;
           if (i + 2 < shiftedData.length && shiftedData[i + 2]) shiftedData[i + 2][1] = ep.accionEspecifica;
+          if (i + 3 < shiftedData.length && shiftedData[i + 3]) shiftedData[i + 3][2] = ep.unidadEjecutora;
         }
       }
     }
@@ -160,7 +152,7 @@ class ExcelProcessor {
   _assignCuentaValues(shiftedData, cuentas) {
     let currentBlockId = 0;
     for (let i = 0; i < shiftedData.length; i++) {
-      const colE = String(shiftedData[i][4] || '').trim();
+      const colE = String(shiftedData[i][5] || '').trim();
       if (colE === this._markers.CUENTA) {
         currentBlockId++;
       }
@@ -169,21 +161,22 @@ class ExcelProcessor {
       if (colE === this._markers.CUENTA) {
         const cuenta = cuentas.find(c => c.rowIndex === i);
         if (cuenta) {
-          shiftedData[i][2] = cuenta.cuenta;
-          shiftedData[i][3] = cuenta.denominacion;
+          shiftedData[i][3] = cuenta.cuenta;
+          shiftedData[i][4] = cuenta.denominacion;
           shiftedData[i][0] = cuenta.currentEP;
           shiftedData[i][1] = cuenta.currentAccion;
+          shiftedData[i][2] = cuenta.currentUnidad;
         }
       }
     }
   }
 
   _findColumnsDynamic(shiftedData) {
-    // Mapa base predeterminado (con el desplazamiento de +4 ya incluido)
+    // Mapa base predeterminado (con el desplazamiento de +5 ya incluido)
     const map = {
-      fecha: 4, comprobante: 5, documento: 6, procede: 7, proveedor: 8, detalle: 9,
-      asignado: 10, aumento: 11, disminucion: 12, montoAct: 13,
-      preComp: 14, comp: 15, causado: 16, pagado: 17, porPagar: 18,
+      fecha: 5, comprobante: 6, documento: 7, procede: 8, proveedor: 9, detalle: 10,
+      asignado: 11, aumento: 12, disminucion: 13, montoAct: 14,
+      preComp: 15, comp: 16, causado: 17, pagado: 18, porPagar: 19,
       _headerRowIndex: 8  // Valor por defecto: fila 8 (compatible con formato estándar)
     };
 
@@ -210,8 +203,8 @@ class ExcelProcessor {
         if (k !== '_headerRowIndex') map[k] = null;
       });
 
-      // Las columnas reales empiezan a partir del índice 4
-      for (let c = 4; c < headerRow.length; c++) {
+      // Las columnas reales empiezan a partir del índice 5
+      for (let c = 5; c < headerRow.length; c++) {
         const title = String(headerRow[c]).toLowerCase().trim();
         if (!title) continue;
 
@@ -262,6 +255,7 @@ class ExcelProcessor {
         if (shiftedData[i][1] === '') shiftedData[i][1] = shiftedData[i - 1][1];
         if (shiftedData[i][2] === '') shiftedData[i][2] = shiftedData[i - 1][2];
         if (shiftedData[i][3] === '') shiftedData[i][3] = shiftedData[i - 1][3];
+        if (shiftedData[i][4] === '') shiftedData[i][4] = shiftedData[i - 1][4];
       }
 
       // 2. Arrastrar montos presupuestarios si la celda de la transacción está vacía o es texto
@@ -287,8 +281,9 @@ class ExcelProcessor {
     if (shiftedData.length > headerIdx) {
       shiftedData[headerIdx][0] = 'Estructura Programatica';
       shiftedData[headerIdx][1] = 'Accion Especifica';
-      shiftedData[headerIdx][2] = 'Cuenta';
-      shiftedData[headerIdx][3] = 'Denominacion';
+      shiftedData[headerIdx][2] = 'Unidad Ejecutora';
+      shiftedData[headerIdx][3] = 'Cuenta';
+      shiftedData[headerIdx][4] = 'Denominacion';
     }
     const result = [];
     const dateRegex = /^\s*\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4}/;
@@ -304,7 +299,7 @@ class ExcelProcessor {
 
       if (!isDateRow) {
         // Fallback seguro: revisar si hay alguna fecha en las 5 primeras columnas originales
-        for (let c = 4; c <= 8; c++) {
+        for (let c = 5; c <= 9; c++) {
           const fallbackCell = String(shiftedData[i][c] || '').trim();
           if (dateRegex.test(fallbackCell) || fallbackCell.includes(this._markers.FECHA_SEPARATOR)) {
             isDateRow = true;
@@ -341,8 +336,9 @@ class ExcelProcessor {
     }
 
     const acc = String(row[1] || '').trim();
-    const cuenta = String(row[2] || '').trim();
-    const denom = String(row[3] || '').trim();
+    const unidad = String(row[2] || '').trim();
+    const cuenta = String(row[3] || '').trim();
+    const denom = String(row[4] || '').trim();
 
     // Función de parseo numérico a prueba de balas
     const toNum = (val) => {
@@ -389,7 +385,7 @@ class ExcelProcessor {
     const subespec = limpia.length >= 9 ? t + '.' + p1 + '.' + p2 + '.' + p3 + '.' + p4 : '';
 
     return [
-      ep, acc, partida, generica, especifica, subespec,
+      ep, acc, unidad, partida, generica, especifica, subespec,
       cuenta, denom,
       String(row[colMap.fecha] || '').trim(),
       String(row[colMap.comprobante] || '').trim(),

@@ -45,6 +45,7 @@ const APP_CONFIG = Object.freeze({
   outputColumns: [
     'Estructura Programatica',
     'Accion Especifica',
+    'Unidad Ejecutora',
     'Partida',
     'Generica',
     'Especifica',

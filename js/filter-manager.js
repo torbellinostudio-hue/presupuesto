@@ -15,6 +15,7 @@ class FilterManager {
       fechaInicio: '',
       fechaFin: '',
       estructura: '',
+      unidad: '',
       partida: '',
       partidaEspecifica: '',
       mes: '',           // '' = todos, '1'..'12' para mes específico
@@ -34,6 +35,7 @@ class FilterManager {
     this._fechaInicio = document.getElementById('filtro-fecha-inicio');
     this._fechaFin = document.getElementById('filtro-fecha-fin');
     this._estructura = document.getElementById('filtro-estructura');
+    this._unidad = document.getElementById('filtro-unidad');
     this._partida = document.getElementById('filtro-partida');
     this._partidaEspecifica = document.getElementById('filtro-partida-especifica');
     this._resetBtn = document.getElementById('btn-reset-filters');
@@ -87,6 +89,11 @@ class FilterManager {
 
     this._estructura.addEventListener('change', () => {
       this._state.estructura = this._estructura.value;
+      this._notify();
+    });
+
+    this._unidad.addEventListener('change', () => {
+      this._state.unidad = this._unidad.value;
       this._notify();
     });
 
@@ -215,6 +222,19 @@ class FilterManager {
       });
     }
 
+    // Unidad Ejecutora
+    const uIdx = headers.indexOf('Unidad Ejecutora');
+    if (uIdx >= 0) {
+      const uniqueU = [...new Set(rows.map(r => String(r[uIdx] || '').trim()).filter(v => v))].sort();
+      this._unidad.innerHTML = '<option value="">Todas</option>';
+      uniqueU.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        this._unidad.appendChild(opt);
+      });
+    }
+
     // Partida Genérica (primeros 2 segmentos, ej: "4.01")
     const pIdx = headers.indexOf('Partida');
     if (pIdx >= 0) {
@@ -266,6 +286,7 @@ class FilterManager {
     const rows = raw.rows;
 
     const epIdx = headers.indexOf('Estructura Programatica');
+    const uIdx = headers.indexOf('Unidad Ejecutora');
     const pIdx = headers.indexOf('Partida');
     const fechaIdx = headers.indexOf('Fecha');
 
@@ -286,6 +307,11 @@ class FilterManager {
       // Filtro estructura
       if (this._state.estructura && epIdx >= 0) {
         if (String(row[epIdx] || '').trim() !== this._state.estructura) return false;
+      }
+
+      // Filtro unidad
+      if (this._state.unidad && uIdx >= 0) {
+        if (String(row[uIdx] || '').trim() !== this._state.unidad) return false;
       }
 
       // Filtro partida genérica
@@ -313,6 +339,7 @@ class FilterManager {
     const rows = raw.rows;
 
     const epIdx = headers.indexOf('Estructura Programatica');
+    const uIdx = headers.indexOf('Unidad Ejecutora');
     const pIdx = headers.indexOf('Partida');
     const especIdx = headers.indexOf('Especifica');
 
@@ -320,6 +347,10 @@ class FilterManager {
       // Filtro estructura
       if (this._state.estructura && epIdx >= 0) {
         if (String(row[epIdx] || '').trim() !== this._state.estructura) return false;
+      }
+      // Filtro unidad
+      if (this._state.unidad && uIdx >= 0) {
+        if (String(row[uIdx] || '').trim() !== this._state.unidad) return false;
       }
       // Filtro partida genérica
       if (this._state.partida && pIdx >= 0) {
@@ -403,6 +434,7 @@ class FilterManager {
       fechaInicio: '',
       fechaFin: '',
       estructura: '',
+      unidad: '',
       partida: '',
       partidaEspecifica: '',
       mes: '',
@@ -423,6 +455,7 @@ class FilterManager {
     this._fechaInicio.value = this._state.fechaInicio;
     this._fechaFin.value = this._state.fechaFin;
     this._estructura.value = '';
+    if(this._unidad) this._unidad.value = '';
     this._partida.value = '';
     this._partidaEspecifica.value = '';
     this._partidaEspecifica.disabled = true;
@@ -450,6 +483,7 @@ class FilterManager {
       items.push({ key: 'mes', label: `${mesLabel} (${modalidadLabel})` });
     }
     if (this._state.estructura) items.push({ key: 'estructura', label: `EP: ${this._state.estructura}` });
+    if (this._state.unidad) items.push({ key: 'unidad', label: `Unidad: ${this._state.unidad}` });
     if (this._state.partida) items.push({ key: 'partida', label: `Partida Genérica: ${this._state.partida}` });
     if (this._state.partidaEspecifica) items.push({ key: 'partidaEspecifica', label: `Partida: ${this._state.partidaEspecifica}` });
 
@@ -474,6 +508,7 @@ class FilterManager {
     this._state[key] = '';
     switch (key) {
       case 'estructura': this._estructura.value = ''; break;
+      case 'unidad': this._unidad.value = ''; break;
       case 'partida':
         this._partida.value = '';
         this._state.partidaEspecifica = '';
