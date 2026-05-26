@@ -316,6 +316,7 @@ class AnalysisManager {
     const aIdx = h.indexOf('Accion Especifica');
     const uIdx = h.indexOf('Unidad Ejecutora');
     const cuentaIdx = h.indexOf('Cuenta'); 
+    const denomIdx = h.indexOf('Denominacion');
     const actIdx = h.indexOf('Asignado'); // Cambiado a Asignado
     const compIdx = h.indexOf('Comprometido');
     const aumIdx = h.indexOf('Aumento');
