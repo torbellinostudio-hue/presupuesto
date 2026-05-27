@@ -26,68 +26,64 @@ class KPIManager {
     const headers = filterManager.getHeaders();
     const colIdx = (name) => headers.indexOf(name);
 
-    // ---- BUDGET FIELDS: siempre usar TODOS los datos (no filtrados) ---- //
-    // Asignado, Modificación, Monto Actualizado son montos presupuestarios
-    // fijos que NO deben variar al cambiar el mes filtrado
+    // ---- BUDGET FIELDS: Asignado siempre usa TODOS los datos (RAW) ---- //
+    // Asignado es el presupuesto inicial fijo.
     const rawData = dataManager.getAllRaw();
     const rawHeaders = rawData.headers;
     const rawRows = window.filterManager ? window.filterManager.getStructurallyFilteredData() : rawData.rows;
     const rawColIdx = (name) => rawHeaders.indexOf(name);
 
     const asignadoRawIdx = rawColIdx('Asignado');
-    const actualRawIdx = rawColIdx('Monto Actualizado');
     const cuentaRawIdx = rawColIdx('Cuenta');
     const epRawIdx = rawColIdx('Estructura Programatica');
     const accRawIdx = rawColIdx('Accion Especifica');
-    const aumentoRawIdx = rawColIdx('Aumento');
-    const disminucionRawIdx = rawColIdx('Disminucion');
+    const uniRawIdx = rawColIdx('Unidad Ejecutora');
 
     let totalAsignado = 0;
-    let totalAumento = 0;
-    let totalDisminucion = 0;
-    let totalActualizado = 0;
     const blocksProcesados = {};
 
     rawRows.forEach(row => {
       const ep = String(row[epRawIdx] || '').trim();
       const accion = String(row[accRawIdx] || '').trim();
+      const unidad = String(row[uniRawIdx] || '').trim();
       const cuenta = String(row[cuentaRawIdx] || '').trim();
-      const blockId = `${ep}│${accion}│${cuenta}`;
-
-      // Sumar Aumento y Disminución de TODAS las transacciones
-      totalAumento += parseFloat(row[aumentoRawIdx]) || 0;
-      totalDisminucion += parseFloat(row[disminucionRawIdx]) || 0;
+      const blockId = `${ep}│${accion}│${unidad}│${cuenta}`;
 
       if (cuenta && ep) {
         if (!blocksProcesados[blockId]) {
-          blocksProcesados[blockId] = { asignado: 0, actualizado: 0 };
+          blocksProcesados[blockId] = { asignado: 0 };
         }
         blocksProcesados[blockId].asignado = Math.max(blocksProcesados[blockId].asignado, parseFloat(row[asignadoRawIdx]) || 0);
-        blocksProcesados[blockId].actualizado = Math.max(blocksProcesados[blockId].actualizado, parseFloat(row[actualRawIdx]) || 0);
       }
     });
 
     for (const b in blocksProcesados) {
       totalAsignado += blocksProcesados[b].asignado;
-      totalActualizado += blocksProcesados[b].actualizado;
     }
 
-    const totalModificaciones = totalAumento - totalDisminucion;
-
     // ---- EXECUTION FIELDS: usar datos filtrados (varían por mes) ---- //
+    const aumIdx = colIdx('Aumento');
+    const disIdx = colIdx('Disminucion');
     const compIdx = colIdx('Comprometido');
     const causIdx = colIdx('Causado');
     const pagIdx = colIdx('Pagado');
 
+    let totalAumento = 0;
+    let totalDisminucion = 0;
     let totalComprometido = 0;
     let totalCausado = 0;
     let totalPagado = 0;
 
     filteredRows.forEach(row => {
+      totalAumento += parseFloat(row[aumIdx]) || 0;
+      totalDisminucion += parseFloat(row[disIdx]) || 0;
       totalComprometido += parseFloat(row[compIdx]) || 0;
       totalCausado += parseFloat(row[causIdx]) || 0;
       totalPagado += parseFloat(row[pagIdx]) || 0;
     });
+
+    const totalModificaciones = totalAumento - totalDisminucion;
+    const totalActualizado = totalAsignado + totalModificaciones;
 
     const ejecucionComp = totalActualizado > 0 ? (totalComprometido / totalActualizado * 100) : 0;
     const ejecucionCaus = totalActualizado > 0 ? (totalCausado / totalActualizado * 100) : 0;
