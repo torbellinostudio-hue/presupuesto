@@ -26,6 +26,10 @@
   <!-- Tabulator para tabla dinámica -->
   <link href="https://unpkg.com/tabulator-tables@6.2.0/dist/css/tabulator_midnight.min.css" rel="stylesheet">
   <script src="https://unpkg.com/tabulator-tables@6.2.0/dist/js/tabulator.min.js"></script>
+
+  <!-- jsPDF y jsPDF-AutoTable para reportes en PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body>
@@ -404,6 +408,7 @@
                 <input type="text" id="tableSearch" class="filter-input" placeholder="Buscar en la tabla..."
                   style="min-width: 250px;">
                 <div>
+                  <button class="btn btn-primary btn-small" id="btnOpenPdfModal" style="margin-right: 5px;">📄 Exportar Reportes (PDF)</button>
                   <button class="btn btn-ghost btn-small" id="btnExportCSV">📥 Exportar Vista Actual (CSV)</button>
                 </div>
               </div>
@@ -424,18 +429,63 @@
   </footer>
 
   <!-- ============================================================
+    MODAL EXPORTAR PDF
+  ============================================================ -->
+  <div id="pdfExportModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Exportar Reportes a PDF</h3>
+        <button class="modal-close" id="btnClosePdfModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 15px;">
+          Seleccione los reportes que desea incluir en el documento PDF. Los datos exportados respetarán el mes y la estructura filtrados actualmente.
+        </p>
+        <div class="pdf-options-list" style="display: flex; flex-direction: column; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chkPdfKpis" checked>
+            <span>Resumen Global (KPIs)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chkPdfPartidas" checked>
+            <span>Resumen por Partida</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chkPdfEstructuras">
+            <span>Resumen por Estructura Programática</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chkPdfMatriz">
+            <span>Matriz Estructura × Partida</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chkPdfGenerica">
+            <span>Detalle por Partida Genérica</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button class="btn btn-ghost" id="btnCancelPdf">Cancelar</button>
+        <button class="btn btn-primary" id="btnGeneratePdf">Generar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
     MÓDULOS (orden de carga importante)
   ============================================================ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <script src="js/denominaciones.js"></script>
   <script src="js/config.js"></script>
   <script src="js/data-manager.js"></script>
-  <script src="js/data-aggregator.js"></script>
-  <script src="js/aggregator-ui.js"></script>
   <script src="js/excel-processor.js"></script>
   <script src="js/filter-manager.js"></script>
+  <script src="js/data-aggregator.js"></script>
   <script src="js/kpi-manager.js"></script>
-  <script src="js/dashboard.js"></script>
   <script src="js/analysis-manager.js"></script>
+  <script src="js/pdf-exporter.js"></script>
+  <script src="js/dashboard.js"></script>
   <script src="js/ui-controller.js"></script>
   <script src="js/app.js"></script>
 </body>
