@@ -62,6 +62,7 @@ class PdfExporter {
         this._btnGeneratePdf.disabled = false;
       }
     });
+    } // Closes if (this._btnGeneratePdf)
   }
 
   async _generateDocument() {
