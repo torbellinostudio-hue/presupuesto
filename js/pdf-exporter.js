@@ -8,7 +8,7 @@ class PdfExporter {
       if (!val) return '0,00';
       return Number(val).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
-    
+
     // Bind buttons
     this._btnOpenModal = document.getElementById('btnOpenPdfModal');
     this._btnCloseModal = document.getElementById('btnClosePdfModal');
@@ -46,22 +46,22 @@ class PdfExporter {
 
     if (this._btnGeneratePdf) {
       this._btnGeneratePdf.addEventListener('click', async () => {
-      // Show loading state
-      const originalText = this._btnGeneratePdf.innerText;
-      this._btnGeneratePdf.innerText = "Generando...";
-      this._btnGeneratePdf.disabled = true;
+        // Show loading state
+        const originalText = this._btnGeneratePdf.innerText;
+        this._btnGeneratePdf.innerText = "Generando...";
+        this._btnGeneratePdf.disabled = true;
 
-      try {
-        await this._generateDocument();
-        this._modal.style.display = 'none';
-      } catch (error) {
-        console.error("Error al generar PDF:", error);
-        alert("Error al generar el PDF. Revise la consola para más detalles.");
-      } finally {
-        this._btnGeneratePdf.innerText = originalText;
-        this._btnGeneratePdf.disabled = false;
-      }
-    });
+        try {
+          await this._generateDocument();
+          this._modal.style.display = 'none';
+        } catch (error) {
+          console.error("Error al generar PDF:", error);
+          alert("Error al generar el PDF. Revise la consola para más detalles.");
+        } finally {
+          this._btnGeneratePdf.innerText = originalText;
+          this._btnGeneratePdf.disabled = false;
+        }
+      });
     } // Closes if (this._btnGeneratePdf)
   }
 
@@ -73,7 +73,7 @@ class PdfExporter {
     }
 
     const { jsPDF } = window.jspdf;
-    
+
     // Configuración: A4 o Letter, orientación apaisada (landscape) para que quepan las columnas
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -83,39 +83,40 @@ class PdfExporter {
 
     // Obtener los datos agregados actuales
     if (!window.dataAggregator) return;
-    
+
     // Obtener las filas filtradas
     const rawData = window.dataManager.getAllRaw();
     const filteredRows = window.filterManager ? window.filterManager.getFilteredData() : rawData.rows;
-    
+
     // Recalcular explícitamente para asegurar que los datos estén frescos
-    const data = window.dataAggregator.aggregateFiltered(filteredRows);
-    
+    const headers = rawData.headers;
+    const data = window.dataAggregator.computeAll(filteredRows, headers);
+
     const margin = 40;
     let startY = margin;
 
     // Filtros activos para el membrete
-    const activeFilters = window.filterManager ? window.filterManager.getActiveFilters() : {};
+    const activeFilters = window.filterManager ? window.filterManager.getState() : {};
     const mesFiltro = activeFilters.mes || "Acumulado Anual";
-    
+
     // Función helper para encabezados
     const addPageHeader = (title) => {
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(40, 40, 40);
       doc.text("REPORTE DE EJECUCIÓN PRESUPUESTARIA", margin, startY);
-      
+
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100, 100, 100);
       const today = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
       doc.text(`Fecha de generación: ${today} | Período: ${mesFiltro}`, margin, startY + 15);
-      
+
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(60, 60, 60);
       doc.text(title, margin, startY + 40);
-      
+
       return startY + 60;
     };
 
@@ -124,7 +125,7 @@ class PdfExporter {
     // 1. Resumen Global (KPIs)
     if (this._chkKpis.checked) {
       startY = addPageHeader("Resumen Global (KPIs)");
-      
+
       const t = data.grandTotals;
       const kpiData = [
         ["Asignado Inicial", this._fmtMoney(t['Asignado'])],
@@ -154,18 +155,20 @@ class PdfExporter {
 
     // Configuración común para las tablas financieras
     const financeCols = ['Asignado', 'Modificación', 'Monto Actualizado', 'Comprometido', 'Causado', 'Pagado', 'Disponible'];
-    
+
     const buildFinanceTable = (title, dataSource, keyName, keyLabel) => {
       if (!isFirstPage) {
         doc.addPage();
         startY = margin;
       }
-      
+
       startY = addPageHeader(title);
-      
+
       const headers = [keyLabel, 'Denominación', ...financeCols];
-      
+
       const body = dataSource.map(row => {
+        // Disponible no se calcula en _groupBy, solo en _computeGrandTotals
+        const disponible = (row['Monto Actualizado'] || 0) - (row['Comprometido'] || 0);
         return [
           row[keyLabel] || '',
           row['Denominacion'] || '',
@@ -175,7 +178,7 @@ class PdfExporter {
           this._fmtMoney(row['Comprometido']),
           this._fmtMoney(row['Causado']),
           this._fmtMoney(row['Pagado']),
-          this._fmtMoney(row['Disponible'])
+          this._fmtMoney(disponible)
         ];
       });
 
@@ -224,12 +227,14 @@ class PdfExporter {
     if (this._chkMatriz.checked) {
       if (!isFirstPage) doc.addPage();
       startY = addPageHeader("Matriz Estructura × Partida");
-      
+
       const headers = ['Estructura', 'Partida', 'Denominación', ...financeCols];
-      
+
       const body = data.matrixEPPartida.map(row => {
+        // Disponible no se calcula en _aggregateMatrixEPPartida, solo en _computeGrandTotals
+        const disponible = (row['Monto Actualizado'] || 0) - (row['Comprometido'] || 0);
         return [
-          row['Estructura Programatica'] || '',
+          row['EstructuraProgramatica'] || '',
           row['Partida'] || '',
           row['Denominacion'] || '',
           this._fmtMoney(row['Asignado']),
@@ -238,7 +243,7 @@ class PdfExporter {
           this._fmtMoney(row['Comprometido']),
           this._fmtMoney(row['Causado']),
           this._fmtMoney(row['Pagado']),
-          this._fmtMoney(row['Disponible'])
+          this._fmtMoney(disponible)
         ];
       });
 
@@ -250,9 +255,9 @@ class PdfExporter {
         headStyles: { fillColor: [230, 230, 230], textColor: [40, 40, 40], fontStyle: 'bold', fontSize: 7 },
         bodyStyles: { fontSize: 7, textColor: [50, 50, 50] },
         columnStyles: {
-          0: { cellWidth: 60, fontStyle: 'bold' }, 
-          1: { cellWidth: 50, fontStyle: 'bold' }, 
-          2: { cellWidth: 'auto' }, 
+          0: { cellWidth: 60, fontStyle: 'bold' },
+          1: { cellWidth: 50, fontStyle: 'bold' },
+          2: { cellWidth: 'auto' },
           3: { halign: 'right', cellWidth: 60 },
           4: { halign: 'right', cellWidth: 60 },
           5: { halign: 'right', cellWidth: 60 },
