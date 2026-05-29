@@ -33,6 +33,9 @@ class PdfExporter {
     }
     if (this._modal) {
       this._modal.style.display = 'flex';
+    } else {
+      console.error("Error: Modal no encontrado. Revise el ID pdfExportModal en HTML.");
+      alert("Error interno: No se pudo abrir la ventana de exportación.");
     }
   }
 
@@ -289,7 +292,15 @@ class PdfExporter {
   }
 }
 
-// Inicialización global cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  window.pdfExporter = new PdfExporter();
-});
+// Inicialización global
+function initPdfExporter() {
+  if (!window.pdfExporter) {
+    window.pdfExporter = new PdfExporter();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPdfExporter);
+} else {
+  initPdfExporter();
+}
