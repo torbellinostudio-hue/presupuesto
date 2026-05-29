@@ -22,7 +22,10 @@ class PdfExporter {
     this._chkEstructuras = document.getElementById('chkPdfEstructuras');
     this._chkMatriz = document.getElementById('chkPdfMatriz');
     this._chkGenerica = document.getElementById('chkPdfGenerica');
-    this._chkGraficos = document.getElementById('chkPdfGraficos');
+    
+    this._chkGraficoEvolucion = document.getElementById('chkPdfGraficoEvolucion');
+    this._chkGraficoPartidas = document.getElementById('chkPdfGraficoPartidas');
+    this._chkGraficoEstructura = document.getElementById('chkPdfGraficoEstructura');
 
     this._initEvents();
   }
@@ -73,12 +76,34 @@ class PdfExporter {
     if (!window.dashboardUI || !window.dashboardUI._charts[chartId]) return null;
     const chart = window.dashboardUI._charts[chartId];
     try {
-      // Fondo blanco para impresión nítida
-      return chart.getDataURL({
+      // 1. Forzar etiquetas (labels) visibles para el PDF estático
+      //    Dependiendo del gráfico, el formato varía, por lo que activamos un genérico que muestra nombre y porcentaje si aplica.
+      chart.setOption({
+        series: [{
+          label: {
+            show: true,
+            formatter: '{b}\n{d}%', // Ideal para pie/doughnut. {d} es porcentaje, {b} es nombre.
+            fontSize: 10,
+            color: '#fff'
+          }
+        }]
+      });
+
+      // 2. Tomar la fotografía
+      const img = chart.getDataURL({
         type: 'png',
         pixelRatio: 2,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#1E1E2F' // Fondo oscuro del dashboard para legibilidad
       });
+
+      // 3. Restaurar el gráfico a su estado normal (sin labels saturando la vista)
+      chart.setOption({
+        series: [{
+          label: { show: false }
+        }]
+      });
+
+      return img;
     } catch (e) {
       console.warn(`No se pudo capturar gráfico ${chartId}`, e);
       return null;
@@ -141,8 +166,8 @@ class PdfExporter {
     };
 
     // Helper para insertar gráficos
-    const addChart = (chartId, yPos) => {
-      if (!this._chkGraficos || !this._chkGraficos.checked) return yPos;
+    const addChart = (chartId, yPos, isEnabled) => {
+      if (!isEnabled) return yPos;
       const imgData = this._captureChart(chartId);
       if (imgData) {
         const targetWidth = 500;
@@ -159,7 +184,8 @@ class PdfExporter {
     // 1. Resumen Global (KPIs)
     if (this._chkKpis.checked) {
       startY = addPageHeader("Resumen Global (KPIs)");
-      startY = addChart('chart-evolucion', startY);
+      const addEvo = this._chkGraficoEvolucion ? this._chkGraficoEvolucion.checked : false;
+      startY = addChart('chart-evolucion', startY, addEvo);
 
       const t = data.grandTotals;
       const kpiData = [
@@ -192,15 +218,15 @@ class PdfExporter {
     // Configuración común para las tablas financieras
     const financeCols = ['Asignado', 'Modificación', 'Monto Actualizado', 'Comprometido', 'Causado', 'Pagado', 'Disponible'];
 
-    const buildFinanceTable = (title, dataSource, keyName, keyLabel, chartId = null) => {
+    const buildFinanceTable = (title, dataSource, keyName, keyLabel, chartId = null, isChartEnabled = false) => {
       if (!isFirstPage) {
         doc.addPage();
         startY = margin;
       }
 
       startY = addPageHeader(title);
-      if (chartId) {
-        startY = addChart(chartId, startY);
+      if (chartId && isChartEnabled) {
+        startY = addChart(chartId, startY, true);
       }
 
       const headers = [keyLabel, 'Denominación', ...financeCols];
@@ -255,12 +281,14 @@ class PdfExporter {
 
     // 2. Resumen por Partida
     if (this._chkPartidas.checked) {
-      buildFinanceTable("Resumen por Partida Principal", data.byPartida, 'partida', 'Partida', 'chart-partidas');
+      const addPar = this._chkGraficoPartidas ? this._chkGraficoPartidas.checked : false;
+      buildFinanceTable("Resumen por Partida Principal", data.byPartida, 'partida', 'Partida', 'chart-partidas', addPar);
     }
 
     // 3. Resumen por Estructura
     if (this._chkEstructuras.checked) {
-      buildFinanceTable("Resumen por Estructura Programática", data.byEstructura, 'ep', 'Estructura Programatica', 'chart-estructura');
+      const addEst = this._chkGraficoEstructura ? this._chkGraficoEstructura.checked : false;
+      buildFinanceTable("Resumen por Estructura Programática", data.byEstructura, 'ep', 'Estructura Programatica', 'chart-estructura', addEst);
     }
 
     // 4. Matriz Estructura x Partida
