@@ -22,6 +22,7 @@ class PdfExporter {
     this._chkEstructuras = document.getElementById('chkPdfEstructuras');
     this._chkMatriz = document.getElementById('chkPdfMatriz');
     this._chkGenerica = document.getElementById('chkPdfGenerica');
+    this._chkGraficos = document.getElementById('chkPdfGraficos');
 
     this._initEvents();
   }
@@ -66,6 +67,22 @@ class PdfExporter {
         }
       });
     } // Closes if (this._btnGeneratePdf)
+  }
+
+  _captureChart(chartId) {
+    if (!window.dashboardUI || !window.dashboardUI._charts[chartId]) return null;
+    const chart = window.dashboardUI._charts[chartId];
+    try {
+      // Fondo blanco para impresión nítida
+      return chart.getDataURL({
+        type: 'png',
+        pixelRatio: 2,
+        backgroundColor: '#ffffff'
+      });
+    } catch (e) {
+      console.warn(`No se pudo capturar gráfico ${chartId}`, e);
+      return null;
+    }
   }
 
   async _generateDocument() {
@@ -123,11 +140,26 @@ class PdfExporter {
       return startY + 60;
     };
 
+    // Helper para insertar gráficos
+    const addChart = (chartId, yPos) => {
+      if (!this._chkGraficos || !this._chkGraficos.checked) return yPos;
+      const imgData = this._captureChart(chartId);
+      if (imgData) {
+        const targetWidth = 500;
+        const targetHeight = 220;
+        const xPos = (792 - targetWidth) / 2; // Centrado en letter landscape (792 ancho)
+        doc.addImage(imgData, 'PNG', xPos, yPos, targetWidth, targetHeight);
+        return yPos + targetHeight + 20; // Nueva posición Y debajo del gráfico
+      }
+      return yPos;
+    };
+
     let isFirstPage = true;
 
     // 1. Resumen Global (KPIs)
     if (this._chkKpis.checked) {
       startY = addPageHeader("Resumen Global (KPIs)");
+      startY = addChart('chart-evolucion', startY);
 
       const t = data.grandTotals;
       const kpiData = [
@@ -145,8 +177,9 @@ class PdfExporter {
         head: [['Indicador', 'Monto (Bs.)']],
         body: kpiData,
         theme: 'grid',
-        headStyles: { fillColor: [240, 240, 240], textColor: [40, 40, 40], fontStyle: 'bold' },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
         bodyStyles: { textColor: [60, 60, 60] },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
         columnStyles: {
           0: { cellWidth: 300, fontStyle: 'bold' },
           1: { halign: 'right' }
@@ -159,13 +192,16 @@ class PdfExporter {
     // Configuración común para las tablas financieras
     const financeCols = ['Asignado', 'Modificación', 'Monto Actualizado', 'Comprometido', 'Causado', 'Pagado', 'Disponible'];
 
-    const buildFinanceTable = (title, dataSource, keyName, keyLabel) => {
+    const buildFinanceTable = (title, dataSource, keyName, keyLabel, chartId = null) => {
       if (!isFirstPage) {
         doc.addPage();
         startY = margin;
       }
 
       startY = addPageHeader(title);
+      if (chartId) {
+        startY = addChart(chartId, startY);
+      }
 
       const headers = [keyLabel, 'Denominación', ...financeCols];
 
@@ -190,8 +226,9 @@ class PdfExporter {
         head: [headers],
         body: body,
         theme: 'grid',
-        headStyles: { fillColor: [230, 230, 230], textColor: [40, 40, 40], fontStyle: 'bold', fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold', fontSize: 8 },
         bodyStyles: { fontSize: 8, textColor: [50, 50, 50] },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
         columnStyles: {
           0: { cellWidth: 70, fontStyle: 'bold' }, // Codigo
           1: { cellWidth: 'auto' }, // Denominacion
@@ -218,12 +255,12 @@ class PdfExporter {
 
     // 2. Resumen por Partida
     if (this._chkPartidas.checked) {
-      buildFinanceTable("Resumen por Partida Principal", data.byPartida, 'partida', 'Partida');
+      buildFinanceTable("Resumen por Partida Principal", data.byPartida, 'partida', 'Partida', 'chart-partidas');
     }
 
     // 3. Resumen por Estructura
     if (this._chkEstructuras.checked) {
-      buildFinanceTable("Resumen por Estructura Programática", data.byEstructura, 'ep', 'Estructura Programatica');
+      buildFinanceTable("Resumen por Estructura Programática", data.byEstructura, 'ep', 'Estructura Programatica', 'chart-estructura');
     }
 
     // 4. Matriz Estructura x Partida
@@ -255,8 +292,9 @@ class PdfExporter {
         head: [headers],
         body: body,
         theme: 'grid',
-        headStyles: { fillColor: [230, 230, 230], textColor: [40, 40, 40], fontStyle: 'bold', fontSize: 7 },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold', fontSize: 7 },
         bodyStyles: { fontSize: 7, textColor: [50, 50, 50] },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
         columnStyles: {
           0: { cellWidth: 60, fontStyle: 'bold' },
           1: { cellWidth: 50, fontStyle: 'bold' },
