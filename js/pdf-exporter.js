@@ -27,7 +27,7 @@ class PdfExporter {
   }
 
   openModal() {
-    if (!window.dataManager || !window.dataManager.hasData()) {
+    if (!window.dataManager || window.dataManager.getAllRaw().rows.length === 0) {
       alert("Por favor, cargue un archivo primero.");
       return;
     }
