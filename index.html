@@ -386,7 +386,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <h4 style="margin: 0; color: var(--color-text-primary);"><span class="chart-icon">⚙️</span> Generador de Reportes (Tabla Dinámica)</h4>
                 <div class="report-actions">
-                  <button class="btn btn-primary btn-small" id="btnOpenPdfModal" style="margin-right: 8px;">📄 Exportar Reportes (PDF)</button>
+                  <button class="btn btn-primary btn-small" id="btnOpenPdfModal" onclick="if(window.pdfExporter) window.pdfExporter.openModal()" style="margin-right: 8px;">📄 Exportar Reportes (PDF)</button>
                   <button class="btn btn-primary btn-small" id="btnGenerateReport">🚀 Generar Reporte</button>
                   <button class="btn btn-ghost btn-small" id="btnClearReport">🧹 Limpiar / Vista Detallada</button>
                 </div>

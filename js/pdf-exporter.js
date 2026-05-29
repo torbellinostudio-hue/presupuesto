@@ -26,21 +26,26 @@ class PdfExporter {
     this._initEvents();
   }
 
-  _initEvents() {
-    if (!this._btnOpenModal) return;
-
-    this._btnOpenModal.addEventListener('click', () => {
-      if (!window.dataManager || !window.dataManager.hasData()) {
-        alert("Por favor, cargue un archivo primero.");
-        return;
-      }
+  openModal() {
+    if (!window.dataManager || !window.dataManager.hasData()) {
+      alert("Por favor, cargue un archivo primero.");
+      return;
+    }
+    if (this._modal) {
       this._modal.style.display = 'flex';
-    });
+    }
+  }
 
-    this._btnCloseModal.addEventListener('click', () => this._modal.style.display = 'none');
-    this._btnCancelPdf.addEventListener('click', () => this._modal.style.display = 'none');
+  _initEvents() {
+    if (this._btnCloseModal) {
+      this._btnCloseModal.addEventListener('click', () => this._modal.style.display = 'none');
+    }
+    if (this._btnCancelPdf) {
+      this._btnCancelPdf.addEventListener('click', () => this._modal.style.display = 'none');
+    }
 
-    this._btnGeneratePdf.addEventListener('click', async () => {
+    if (this._btnGeneratePdf) {
+      this._btnGeneratePdf.addEventListener('click', async () => {
       // Show loading state
       const originalText = this._btnGeneratePdf.innerText;
       this._btnGeneratePdf.innerText = "Generando...";
@@ -278,5 +283,7 @@ class PdfExporter {
   }
 }
 
-// Inicialización global
-window.pdfExporter = new PdfExporter();
+// Inicialización global cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  window.pdfExporter = new PdfExporter();
+});
